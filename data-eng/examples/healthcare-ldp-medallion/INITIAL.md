@@ -125,10 +125,6 @@ databricks-data-engineering-project/
 ├── resources/                  # Asset Bundle resource definitions
 │   ├── pipelines.yml          # DLT pipeline configurations
 │   ├── jobs.yml               # Job workflow definitions
-├── environments/              # Environment-specific configurations
-│   ├── dev.yml               # Development environment settings
-│   ├── staging.yml           # Staging environment settings
-│   └── prod.yml              # Production environment settings
 ├── src/                      # Source code
 │   ├── pipelines/            # DLT pipeline definitions
 │   │   ├── bronze/           # Raw data ingestion pipelines

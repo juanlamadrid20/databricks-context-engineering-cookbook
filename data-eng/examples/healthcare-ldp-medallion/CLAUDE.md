@@ -170,7 +170,7 @@ targets:
       max_files_per_trigger: 200
 ```
 
-#### DLT Pipeline Resource Configuration
+#### DLT Pipeline Resource Configuration (SERVERLESS ONLY)
 ```yaml
 # resources/pipelines.yml
 resources:
@@ -179,7 +179,7 @@ resources:
       name: "health-insurance-patient-pipeline-${var.environment}"
       target: "${var.schema}"  # CRITICAL: Only schema when catalog is specified separately
       catalog: "${var.catalog}"  # CRITICAL: Required for serverless compute
-      serverless: true
+      serverless: true  # MANDATORY: Must be true - NO cluster configurations allowed
       
       libraries:
         # CRITICAL: Reference individual files, NOT directories
@@ -528,23 +528,29 @@ def gold_daily_summary():
 
 ### Mandatory Practices
 
+#### Compute Requirements (CRITICAL)
+1. **Serverless Compute Only**: ALL pipelines and jobs MUST use serverless compute - NO custom cluster configurations allowed
+2. **No Cluster Resources**: Never create cluster configurations in jobs.yml or any resource files
+3. **Serverless Pipeline Configuration**: DLT pipelines must specify `serverless: true` and cannot include `clusters:` section
+4. **Job Serverless**: All jobs must use serverless compute - no `job_clusters:` or `new_cluster:` configurations
+
 #### Asset Bundle Requirements
-1. **Asset Bundle First**: Never deploy manually - always use `databricks bundle deploy`
-2. **Environment Isolation**: Use Asset Bundle targets for dev/staging/prod separation  
-3. **Version Control**: All databricks.yml configurations must be version controlled
-4. **Configuration via Variables**: Use Asset Bundle variables and `spark.conf.get()` pattern
-5. **Include Pattern**: Use `include: - resources/*.yml` for resource organization
-6. **Variable Defaults**: Always provide sensible defaults for Asset Bundle variables
+5. **Asset Bundle First**: Never deploy manually - always use `databricks bundle deploy`
+6. **Environment Isolation**: Use Asset Bundle targets for dev/staging/prod separation  
+7. **Version Control**: All databricks.yml configurations must be version controlled
+8. **Configuration via Variables**: Use Asset Bundle variables and `spark.conf.get()` pattern
+9. **Include Pattern**: Use `include: - resources/*.yml` for resource organization
+10. **Variable Defaults**: Always provide sensible defaults for Asset Bundle variables
 
 #### Pipeline Development Standards  
-7. **Unity Catalog Governance**: Use three-part naming `{catalog}.{schema}.{table}` everywhere
-8. **Configuration Variables**: Use `spark.conf.get("CATALOG", "default")` with Asset Bundle variables
-9. **DLT Dependencies**: Use `dlt.read()` and `dlt.read_stream()` for table dependencies, never `spark.read()`
-10. **Data Quality**: Include multi-level `@dlt.expect_*` decorators on all tables
-11. **Schema Enforcement**: Define explicit schemas for bronze layer ingestion
-12. **Path Handling**: Include comprehensive path resolution in pipeline files
-13. **PII Handling**: Mark PII fields in table properties for governance compliance
-14. **Change Data Capture**: Enable CDC on gold tables with `delta.enableChangeDataFeed`
+11. **Unity Catalog Governance**: Use three-part naming `{catalog}.{schema}.{table}` everywhere
+12. **Configuration Variables**: Use `spark.conf.get("CATALOG", "default")` with Asset Bundle variables
+13. **DLT Dependencies**: Use `dlt.read()` and `dlt.read_stream()` for table dependencies, never `spark.read()`
+14. **Data Quality**: Include multi-level `@dlt.expect_*` decorators on all tables
+15. **Schema Enforcement**: Define explicit schemas for bronze layer ingestion
+16. **Path Handling**: Include comprehensive path resolution in pipeline files
+17. **PII Handling**: Mark PII fields in table properties for governance compliance
+18. **Change Data Capture**: Enable CDC on gold tables with `delta.enableChangeDataFeed`
 
 ### 🚨 DLT Streaming Ingestion Best Practice
 
@@ -565,9 +571,12 @@ Before implementing features:
 
 ### Common Pitfalls to Avoid
 
+**🚨 CRITICAL: SERVERLESS COMPUTE ONLY** — Never create cluster configurations. All pipelines and jobs must use serverless compute.
+
 **Avoid placing aggregate checks in expectations** — move them to a metrics table instead.
 
 #### Asset Bundle Configuration Pitfalls
+- **Using cluster configurations** - NEVER create job_clusters, new_cluster, or clusters sections (MUST use serverless only)
 - **Manual deployment** instead of using Asset Bundles
 - **Missing environment separation** in Asset Bundle configuration
 - **Hard-coding workspace URLs** or environment-specific values in databricks.yml
@@ -578,7 +587,7 @@ Before implementing features:
 - **Hardcoding values** that should be Asset Bundle variables
 - **Referencing directories in pipeline libraries** - use individual file paths, not directory paths (causes "unable to determine if path is not a notebook" error)
 - **Using custom cluster labels** - only 'default', 'updates', and 'maintenance' labels are allowed in DLT pipelines
-- **Mixing serverless and cluster configurations** - cannot use both `serverless: true` and `clusters:` section (choose one or the other)
+- **Mixing serverless and cluster configurations** - cannot use both `serverless: true` and `clusters:` section (SERVERLESS ONLY)
 - **Missing catalog for serverless pipelines** - must specify both `target: "${var.schema}"` AND `catalog: "${var.catalog}"` for serverless compute (target should only contain schema when catalog is specified separately)
 - **Incorrect target configuration** - when `catalog` is specified separately, `target` should only contain the schema name (`target: "${var.schema}"`), NOT the full catalog.schema path (`target: "${var.catalog}.${var.schema}"`)
 - **Using invalid pipeline fields** - `tags:` field is not valid in DLT pipeline configuration (use configuration parameters instead)
