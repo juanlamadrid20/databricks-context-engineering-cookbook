@@ -1,0 +1,632 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Project Overview
+
+This is a Databricks data engineering project template implementing a medallion architecture (Bronze → Silver → Gold) using 
+Decalarative Pipelines (Delta Live Tables (DLT)) and Databricks Asset Bundles for deployment management.
+
+## Consolidated Documentation References
+
+### External Documentation Hub
+Use these documentation sources as the single source of truth for all development activities:
+
+```yaml
+# Primary Databricks Documentation
+databricks_core:
+  asset_bundles:
+    - url: https://docs.databricks.com/dev-tools/bundles/index.html
+      usage: "Asset Bundle configuration, deployment patterns, and environment management"
+    - url: https://docs.databricks.com/dev-tools/cli/bundle-cli.html
+      usage: "Asset Bundle CLI commands and workflow automation"
+      
+  delta_live_tables:
+    - url: https://docs.databricks.com/workflows/delta-live-tables/delta-live-tables-python-ref.html
+      usage: "DLT decorators (@dlt.table, @dlt.expect_*), streaming tables, and pipeline patterns"
+    - url: https://docs.databricks.com/workflows/delta-live-tables/delta-live-tables-expectations.html
+      usage: "Data quality expectations, quarantine patterns, and validation strategies"
+    - url: https://docs.databricks.com/workflows/delta-live-tables/index.html
+      usage: "General DLT concepts, medallion architecture, and best practices"
+      
+  unity_catalog:
+    - url: https://docs.databricks.com/data-governance/unity-catalog/best-practices.html
+      usage: "Three-part naming conventions, governance patterns, and PII handling"
+    - url: https://docs.databricks.com/data-governance/unity-catalog/index.html
+      usage: "Unity Catalog setup, permissions, and data governance framework"
+      
+  performance_optimization:
+    - url: https://docs.databricks.com/delta/optimize.html
+      usage: "Delta Lake optimization, Z-ordering, and liquid clustering strategies"
+    - url: https://docs.databricks.com/workflows/delta-live-tables/delta-live-tables-performance.html
+      usage: "DLT pipeline performance tuning and scaling best practices"
+
+# Platform Documentation  
+platform_docs:
+  delta_lake:
+    - url: https://docs.delta.io/
+      usage: "Delta Lake core concepts, ACID transactions, and time travel"
+  medallion_architecture:
+    - url: https://www.databricks.com/glossary/medallion-architecture
+      usage: "Bronze-Silver-Gold architecture patterns and implementation strategies"
+```
+
+### Reference Usage Guidelines
+- **For PRPs**: Reference this section instead of duplicating URLs in individual PRP files
+- **For Implementation**: Use as single source for all Databricks documentation links
+- **For Context Engineering**: Combine with domain-specific documentation in PRPs as needed
+
+## Key Commands
+
+### Databricks Asset Bundle Operations
+```bash
+# Initialize Asset Bundle structure (if starting fresh)
+databricks bundle init
+
+# Validate bundle configuration
+databricks bundle validate
+
+# Deploy to development environment
+databricks bundle deploy --target dev
+
+# Deploy to production environment
+databricks bundle deploy --target prod
+```
+
+### Pipeline Development Workflow
+```bash
+# Validate Python syntax
+python -m py_compile src/pipelines/**/*.py
+
+# Run unit tests (when test files exist)
+python -m pytest tests/ -v
+
+# Deploy and test pipeline
+databricks bundle deploy --target dev
+databricks jobs run-now --job-id <pipeline_name>
+```
+
+## Architecture Overview
+
+### Project Structure
+- `PRPs/` - Problem Requirements & Proposals for planning features
+- `PRPs/templates/` - PRP templates for systematic feature development
+- `src/` - Source code (to be created during development)
+  - `src/data_generation/` - Synthetic data generation jobs
+  - `src/pipelines/` - Delta Live Tables pipeline definitions
+    - `src/pipelines/bronze/` - Raw data ingestion
+    - `src/pipelines/silver/` - Data cleaning and transformation  
+    - `src/pipelines/gold/` - Business-ready dimensional models
+  - `src/tests/` - Unit and integration tests
+
+### Data Engineering Patterns
+- **Medallion Architecture**: Bronze (raw) → Silver (cleaned) → Gold (aggregated)
+- **Delta Live Tables**: Declarative pipeline definitions with data quality expectations
+- **Asset Bundle Management**: Infrastructure-as-code for all deployments
+- **Environment Isolation**: Separate dev/staging/prod configurations
+
+## Critical Development Patterns
+
+### Asset Bundle Management - Single Source of Truth
+
+#### Asset Bundle Workflow Commands
+```bash
+# Initialize bundle (if starting fresh)
+databricks bundle init
+
+# Validate bundle configuration
+databricks bundle validate
+
+# Deploy to development environment
+databricks bundle deploy --target dev
+
+# Deploy to production environment
+databricks bundle deploy --target prod
+```
+
+#### Comprehensive Root `databricks.yml` Template
+```yaml
+bundle:
+  name: health-insurance-patient-pipeline
+  
+variables:
+  catalog:
+    description: "Unity Catalog name"
+    
+  schema:
+    description: "Schema name within catalog"
+    default: "data_eng"
+    
+  environment:
+    description: "Environment identifier (dev/prod)"
+    
+  volumes_path:
+    description: "Path to Databricks Volumes for CSV ingestion"
+    
+  max_files_per_trigger:
+    description: "Auto Loader performance tuning"
+    default: 100
+
+include:
+  - resources/*.yml
+
+targets:
+  dev:
+    mode: development
+    variables:
+      catalog: "juan_dev"
+      schema: "data_eng"
+      environment: "dev"
+      volumes_path: "/Volumes/juan_dev/data_eng/raw_data"
+      max_files_per_trigger: 50
+      
+  prod:
+    mode: production
+    variables:
+      catalog: "juan_prod"
+      schema: "data_eng" 
+      environment: "prod"
+      volumes_path: "/Volumes/juan_prod/data_eng/raw_data"
+      max_files_per_trigger: 200
+```
+
+#### DLT Pipeline Resource Configuration
+```yaml
+# resources/pipelines.yml
+resources:
+  pipelines:
+    patient_data_pipeline:
+      name: "health-insurance-patient-pipeline-${var.environment}"
+      target: "${var.schema}"  # CRITICAL: Only schema when catalog is specified separately
+      catalog: "${var.catalog}"  # CRITICAL: Required for serverless compute
+      serverless: true
+      
+      libraries:
+        # CRITICAL: Reference individual files, NOT directories
+        # Shared schemas
+        - file:
+            path: ../<relative_path>/shared/healthcare_schemas.py
+        # Bronze layer ingestion
+        - file:
+            path: ../<relative_path>/bronze/patient_demographics_ingestion.py
+        - file:
+            path: ../<relative_path>/bronze/insurance_claims_ingestion.py
+        - file:
+            path: ../<relative_path>/bronze/medical_events_ingestion.py
+        # Silver layer transformations
+        - file:
+            path: ../<relative_path>/silver/patient_demographics_transform.py
+        - file:
+            path: ../<relative_path>/silver/insurance_claims_transform.py
+        # Gold layer dimensions
+        - file:
+            path: ../<relative_path>/gold/patient_360_dimension.py
+            
+      configuration:
+        "bundle.sourcePath": "/Workspace${workspace.file_path}/src"
+        "CATALOG": "${var.catalog}"
+        "SCHEMA": "${var.schema}"
+        "PIPELINE_ENV": "${var.environment}"
+        "VOLUMES_PATH": "${var.volumes_path}"
+        "MAX_FILES_PER_TRIGGER": "${var.max_files_per_trigger}"
+        # Healthcare compliance configurations (serverless handles compute automatically)
+        # "spark.databricks.delta.properties.defaults.encryption.enabled": "true" # TODO: Claud.md review
+        "spark.databricks.delta.properties.defaults.changeDataFeed.enabled": "true"
+        # Compliance and governance metadata (stored as configuration parameters)
+        "compliance": "HIPAA"
+        "data_classification": "PHI"
+        "environment": "${var.environment}"
+        
+      # Continuous processing for healthcare workloads  
+      continuous: false
+```
+
+#### Asset Bundle Variable Management Pattern
+```yaml
+variables:
+  catalog:
+    description: "Unity Catalog name"
+    default: "juan_dev"
+  schema:
+    description: "Schema name for data"
+    default: "data_eng"
+  volumes_path:
+    description: "Path to Databricks Volumes for CSV files"
+    default: "/Volumes/juan_dev/data_eng/raw_data"
+  max_files_per_trigger:
+    description: "Auto Loader performance tuning parameter"
+    default: 100
+
+targets:
+  dev:
+    variables:
+      catalog: "juan_dev"
+      schema: "data_eng"
+      volumes_path: "/Volumes/juan_dev/data_eng/raw_data"
+      max_files_per_trigger: 50
+  prod:
+    variables:
+      catalog: "juan_prod"
+      schema: "data_eng"
+      volumes_path: "/Volumes/juan_prod/data_eng/raw_data"
+      max_files_per_trigger: 200
+```
+
+#### Pipeline Configuration Pattern
+```python
+# Environment-aware configuration loading - CRITICAL pattern for all pipeline files
+CATALOG = spark.conf.get("CATALOG", "juan_dev")
+SCHEMA = spark.conf.get("SCHEMA", "data_eng")
+PIPELINE_ENV = spark.conf.get("PIPELINE_ENV", "dev")
+VOLUMES_PATH = spark.conf.get("VOLUMES_PATH", "/Volumes/juan_dev/data_eng/raw_data")
+MAX_FILES_PER_TRIGGER = spark.conf.get("MAX_FILES_PER_TRIGGER", "100")
+```
+
+#### Critical Path Handling Pattern
+```python
+# CRITICAL: Include this pattern in all pipeline files
+try:
+    notebook_path = dbutils.notebook.entry_point.getDbutils().notebook().getContext().notebookPath().get()
+    base_path = "/".join(notebook_path.split("/")[:-2])
+    sys.path.insert(0, f"{base_path}/src")
+except:
+    # Fallback to multiple common paths
+    possible_paths = ["/Workspace/src", "/databricks/driver/src", "/repos/src"]
+    for path in possible_paths:
+        if os.path.exists(path):
+            sys.path.insert(0, path)
+            break
+```
+
+### DLT Pipeline Patterns
+
+#### Critical Autoloader Pattern for DLT Streaming
+**🚨 MANDATORY**: When using Autoloader (`cloudFiles`) with DLT streaming tables, you **MUST** include `.format("cloudFiles")`:
+
+```python
+# ✅ CORRECT - Required format for Autoloader with DLT
+@dlt.table(name="bronze_table_raw")
+def bronze_table_raw():
+    return (
+        spark.readStream.format("cloudFiles")  # ← CRITICAL: Must include .format("cloudFiles")
+        .option("cloudFiles.format", "csv")
+        .option("cloudFiles.header", "true")
+        .option("cloudFiles.schemaLocation", f"{VOLUMES_PATH}/_checkpoints/table_name")
+        .schema(TABLE_SCHEMA)
+        .load(f"{VOLUMES_PATH}")
+    )
+
+# ❌ INCORRECT - Missing .format("cloudFiles") 
+@dlt.table(name="bronze_table_raw")
+def bronze_table_raw():
+    return (
+        spark.readStream  # ← MISSING: .format("cloudFiles")
+        .option("cloudFiles.format", "csv")  # This alone is not sufficient
+        .option("cloudFiles.header", "true")
+        .load(f"{VOLUMES_PATH}")
+    )
+```
+
+**Why this matters:**
+- DLT requires explicit `.format("cloudFiles")` to recognize and optimize Autoloader functionality
+- Missing this pattern causes pipeline failures and performance issues
+- Simply having `"cloudFiles.format"` option is **not sufficient** - you need both
+
+#### Complete DLT Pipeline Template
+```python
+import dlt
+import sys
+from pyspark.sql.functions import current_timestamp, col
+from pyspark.sql.types import StructType, StructField, StringType, TimestampType
+
+# Environment-aware configuration with Unity Catalog
+CATALOG = spark.conf.get("bundle.target.catalog", "default_catalog")
+SCHEMA = spark.conf.get("bundle.target.schema", "default_schema")
+PIPELINE_ENV = spark.conf.get("bundle.target.name", "dev")
+
+# Critical path handling pattern (include in all pipeline files)
+try:
+    notebook_path = dbutils.notebook.entry_point.getDbutils().notebook().getContext().notebookPath().get()
+    base_path = "/".join(notebook_path.split("/")[:-2])
+    sys.path.insert(0, f"{base_path}/src")
+except:
+    # Fallback to multiple common paths
+    possible_paths = ["/Workspace/src", "/databricks/driver/src", "/repos/src"]
+    for path in possible_paths:
+        if os.path.exists(path):
+            sys.path.insert(0, path)
+            break
+
+# Bronze layer with schema enforcement and cloud files
+@dlt.table(
+    name=f"{CATALOG}.{SCHEMA}.bronze_events",
+    comment="Raw event data ingestion with schema enforcement",
+    table_properties={
+        "quality": "bronze",
+        "pipelines.autoOptimize.managed": "true",
+        "delta.feature.allowColumnDefaults": "supported"
+    }
+)
+@dlt.expect_all_or_drop({
+    "valid_event_id": "event_id IS NOT NULL AND LENGTH(event_id) > 0",
+    "valid_timestamp": "event_timestamp IS NOT NULL"
+})
+def bronze_events():
+    schema = StructType([
+        StructField("event_id", StringType(), False),
+        StructField("user_id", StringType(), True),
+        StructField("event_type", StringType(), True),
+        StructField("event_timestamp", TimestampType(), False),
+        StructField("properties", StringType(), True)
+    ])
+    
+    return (
+        spark.readStream
+        .option("cloudFiles.format", "json")
+        .option("cloudFiles.schemaLocation", f"/tmp/schemas/{PIPELINE_ENV}/events")
+        .option("cloudFiles.inferColumnTypes", "false")
+        .schema(schema)
+        .load(spark.conf.get("source.events.path", "/mnt/data/events/"))
+        .select("*", "_metadata")  # Include file metadata
+        .withColumn("_ingested_at", current_timestamp())
+        .withColumn("_pipeline_env", lit(PIPELINE_ENV))
+        .withColumn("_file_name", col("_metadata.file_name"))
+        .withColumn("_file_path", col("_metadata.file_path"))
+        .withColumn("_file_size", col("_metadata.file_size"))
+        .withColumn("_file_modification_time", col("_metadata.file_modification_time"))
+        .drop("_metadata")  # Clean up after extracting needed fields
+    )
+
+# Lakeflow Connect pattern for external data sources
+@dlt.table(
+    name=f"{CATALOG}.{SCHEMA}.bronze_external_customers",
+    comment="External customer data via Lakeflow Connect"
+)
+def bronze_external_customers():
+    return dlt.read_stream("lakeflow.salesforce.customers")
+
+# Silver layer with business logic and enhanced data quality
+@dlt.view(name="silver_events_staging")
+def silver_events_staging():
+    """Staging view for silver transformation"""
+    return (
+        dlt.read(f"{CATALOG}.{SCHEMA}.bronze_events")
+        .filter("_rescued_data IS NULL")  # Filter out malformed records
+        .filter("event_timestamp >= current_date() - interval 7 days")  # Recent data only
+    )
+
+@dlt.table(
+    name=f"{CATALOG}.{SCHEMA}.silver_events",
+    comment="Cleaned and enriched event data",
+    table_properties={
+        "quality": "silver",
+        "pipelines.pii.fields": "user_id"
+    }
+)
+@dlt.expect_all_or_drop({
+    "valid_event_id": "event_id IS NOT NULL",
+    "valid_user_id": "user_id IS NOT NULL OR event_type = 'anonymous'",
+    "future_timestamp": "event_timestamp <= current_timestamp()"
+})
+@dlt.expect_or_fail({
+    "no_duplicates": "COUNT(*) = COUNT(DISTINCT event_id)"
+})
+def silver_events():
+    return (
+        dlt.read("silver_events_staging")
+        .withColumn("event_date", col("event_timestamp").cast("date"))
+        .withColumn("hour_bucket", hour(col("event_timestamp")))
+        .withColumn("processed_at", current_timestamp())
+    )
+
+# Gold layer aggregations with SCD Type 2 support
+@dlt.table(
+    name=f"{CATALOG}.{SCHEMA}.gold_daily_user_metrics",
+    comment="Daily user engagement metrics for analytics",
+    table_properties={
+        "quality": "gold",
+        "delta.enableChangeDataFeed": "true"
+    }
+)
+def gold_daily_user_metrics():
+    return (
+        dlt.read(f"{CATALOG}.{SCHEMA}.silver_events")
+        .groupBy("user_id", "event_date")
+        .agg(
+            count("*").alias("total_events"),
+            countDistinct("event_type").alias("unique_event_types"),
+            min("event_timestamp").alias("first_event"),
+            max("event_timestamp").alias("last_event")
+        )
+        .withColumn("engagement_score", 
+                   when(col("total_events") > 10, "high")
+                   .when(col("total_events") > 3, "medium")
+                   .otherwise("low"))
+    )
+```
+
+### File Metadata Patterns
+
+**CRITICAL**: Always use the `_metadata` column for file information instead of deprecated functions like `input_file_name()`.
+
+#### Correct File Metadata Pattern
+```python
+# Correct approach using _metadata column
+return (
+    spark.readStream
+    .option("cloudFiles.format", "csv")
+    .option("cloudFiles.header", "true")
+    .schema(schema)
+    .load(f"{VOLUMES_PATH}/data_*.csv")
+    .select("*", "_metadata")  # REQUIRED: Explicitly select metadata
+    .withColumn("_file_name", col("_metadata.file_name"))
+    .withColumn("_file_path", col("_metadata.file_path"))
+    .withColumn("_file_size", col("_metadata.file_size"))
+    .withColumn("_file_modification_time", col("_metadata.file_modification_time"))
+    .drop("_metadata")  # Clean up temporary column
+)
+```
+
+#### Deprecated Pattern (DO NOT USE)
+```python
+# ❌ DEPRECATED - Do not use input_file_name()
+from pyspark.sql.functions import input_file_name
+.withColumn("_file_name", input_file_name())  # This is deprecated
+```
+
+#### Available Metadata Fields
+- `_metadata.file_name`: File name with extension
+- `_metadata.file_path`: Full file path
+- `_metadata.file_size`: File size in bytes
+- `_metadata.file_modification_time`: Last modification timestamp
+- `_metadata.file_block_start`: Start offset of block being read
+- `_metadata.file_block_length`: Length of block being read
+
+Reference: [Databricks File Metadata Column Documentation](https://docs.databricks.com/aws/en/ingestion/file-metadata-column)
+
+### Data Quality Expectations & Monitoring
+Always implement comprehensive data quality using DLT decorators:
+
+- **IMPORTANT**: Aggregate checks must **NOT** be used inside expectations. Expectations must be row-level Boolean expressions only.
+
+#### Core Expectation Types
+- `@dlt.expect_all_or_drop()` - Drop rows that fail expectations (use for critical data quality)
+- `@dlt.expect_all()` - Log violations but keep processing (use for monitoring)
+- `@dlt.expect_or_drop()` - Drop individual failing rows (use for outlier removal)
+- `@dlt.expect_or_fail()` - Fail entire pipeline on violations (use for schema validation)
+
+#### Advanced Quality Patterns
+Note: Do not use aggregate expressions like COUNT(), SUM(), or AVG() inside @dlt.expect_* decorators. Use a separate metrics table for aggregate validations.
+```python
+# Multi-level data quality with custom metrics
+@dlt.table(name="silver_customers")
+@dlt.expect_all_or_drop({
+    "valid_customer_id": "customer_id IS NOT NULL AND LENGTH(customer_id) >= 5",
+    "valid_email": "email RLIKE '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$'",
+    "valid_created_date": "created_date <= current_date()"
+})
+@dlt.expect_all({
+    "reasonable_age": "age BETWEEN 13 AND 120",
+    "complete_profile": "first_name IS NOT NULL AND last_name IS NOT NULL"
+})
+@dlt.expect_or_fail({
+    "no_duplicate_emails": "COUNT(*) = COUNT(DISTINCT email)",
+    "schema_compliance": "_rescued_data IS NULL"
+})
+def silver_customers():
+    return dlt.read("bronze_customers")
+
+# Data freshness monitoring
+@dlt.expect_all({
+    "data_freshness": "max(created_date) >= current_date() - interval 1 day"
+})
+def gold_daily_summary():
+    return dlt.read("silver_events").groupBy("event_date").count()
+```
+
+## Development Guidelines
+
+### Mandatory Practices
+
+#### Asset Bundle Requirements
+1. **Asset Bundle First**: Never deploy manually - always use `databricks bundle deploy`
+2. **Environment Isolation**: Use Asset Bundle targets for dev/staging/prod separation  
+3. **Version Control**: All databricks.yml configurations must be version controlled
+4. **Configuration via Variables**: Use Asset Bundle variables and `spark.conf.get()` pattern
+5. **Include Pattern**: Use `include: - resources/*.yml` for resource organization
+6. **Variable Defaults**: Always provide sensible defaults for Asset Bundle variables
+
+#### Pipeline Development Standards  
+7. **Unity Catalog Governance**: Use three-part naming `{catalog}.{schema}.{table}` everywhere
+8. **Configuration Variables**: Use `spark.conf.get("CATALOG", "default")` with Asset Bundle variables
+9. **DLT Dependencies**: Use `dlt.read()` and `dlt.read_stream()` for table dependencies, never `spark.read()`
+10. **Data Quality**: Include multi-level `@dlt.expect_*` decorators on all tables
+11. **Schema Enforcement**: Define explicit schemas for bronze layer ingestion
+12. **Path Handling**: Include comprehensive path resolution in pipeline files
+13. **PII Handling**: Mark PII fields in table properties for governance compliance
+14. **Change Data Capture**: Enable CDC on gold tables with `delta.enableChangeDataFeed`
+
+### 🚨 DLT Streaming Ingestion Best Practice
+
+**Always use `@dlt.table` (not `@dlt.view`) for raw ingestion from Autoloader (`spark.readStream` / `cloudFiles`).**
+
+- `@dlt.table` ensures streaming tables are **persisted**, **checkpointed**, and **visible** to downstream DLT pipelines.
+- `@dlt.view` creates **non-materialized logic**, which:
+  - Is **not checkpointed or persisted**,
+  - May **not register** in Unity Catalog,
+  - Can lead to downstream **`Dataset not defined`** errors when downstream flows call `dlt.read_stream(...)`.
+
+### Planning Process
+Before implementing features:
+1. Create a PRP using templates in `PRPs/templates/prp_base.md`
+2. Review `INITIAL.md` for project-specific requirements and patterns
+3. Use the comprehensive PRP template which includes validation loops and context requirements
+4. Follow the Asset Bundle deployment workflow
+
+### Common Pitfalls to Avoid
+
+**Avoid placing aggregate checks in expectations** — move them to a metrics table instead.
+
+#### Asset Bundle Configuration Pitfalls
+- **Manual deployment** instead of using Asset Bundles
+- **Missing environment separation** in Asset Bundle configuration
+- **Hard-coding workspace URLs** or environment-specific values in databricks.yml
+- **Creating unused utility modules** - prefer Asset Bundle variables + `spark.conf.get()` pattern
+- **Missing path handling** in pipeline files - include comprehensive path resolution
+- **Missing resource dependencies** in Asset Bundle configuration
+- **Not using variable defaults** in Asset Bundle configuration
+- **Hardcoding values** that should be Asset Bundle variables
+- **Referencing directories in pipeline libraries** - use individual file paths, not directory paths (causes "unable to determine if path is not a notebook" error)
+- **Using custom cluster labels** - only 'default', 'updates', and 'maintenance' labels are allowed in DLT pipelines
+- **Mixing serverless and cluster configurations** - cannot use both `serverless: true` and `clusters:` section (choose one or the other)
+- **Missing catalog for serverless pipelines** - must specify both `target: "${var.schema}"` AND `catalog: "${var.catalog}"` for serverless compute (target should only contain schema when catalog is specified separately)
+- **Incorrect target configuration** - when `catalog` is specified separately, `target` should only contain the schema name (`target: "${var.schema}"`), NOT the full catalog.schema path (`target: "${var.catalog}.${var.schema}"`)
+- **Using invalid pipeline fields** - `tags:` field is not valid in DLT pipeline configuration (use configuration parameters instead)
+
+#### Pipeline Development Pitfalls
+- **Using `spark.read()` instead of `dlt.read()`** for dependencies (breaks DLT lineage)
+- **Missing Unity Catalog three-part naming** `{catalog}.{schema}.{table}` format
+- **Missing data quality expectations** on tables (mandatory for production pipelines)
+- **Using `display()` in DLT functions** (return DataFrames instead)
+- **Deploying directly to production** without dev environment testing
+- **Skipping schema enforcement** in bronze layer (causes downstream issues)
+- **Missing PII governance markers** in table properties
+- **Not handling `_rescued_data`** in silver layer transformations
+- **Using streaming without appropriate triggers** (can cause performance issues)
+- **Using deprecated `input_file_name()` function** - use `_metadata` column instead (see: https://docs.databricks.com/aws/en/ingestion/file-metadata-column)
+
+### Testing Strategy
+1. **Syntax Validation**: `databricks bundle validate --target dev`
+2. **Unit Tests**: Test pipeline logic with mocked DLT dependencies using pytest
+3. **Schema Validation**: `python -m py_compile src/pipelines/**/*.py`
+4. **Integration Tests**: Deploy to dev environment and validate end-to-end pipeline execution
+5. **Data Quality Validation**: Verify DLT expectations work correctly with test data
+6. **Performance Testing**: Monitor pipeline execution metrics and optimize triggers
+7. **Lineage Validation**: Verify table dependencies and Unity Catalog governance
+
+#### Essential Test Commands
+```bash
+# Complete validation workflow
+databricks bundle validate --target dev
+python -m py_compile src/pipelines/**/*.py
+databricks bundle deploy --target dev
+databricks jobs run-now --job-id <pipeline_job_id>
+
+# Data quality monitoring
+databricks sql query "SELECT * FROM system.event_log.dlt_pipeline_events WHERE pipeline_id = '<pipeline_id>'"
+
+# Unity Catalog validation
+databricks catalogs get <catalog_name>
+databricks schemas list --catalog-name <catalog>
+databricks tables list --catalog-name <catalog> --schema-name <schema>
+```
+
+## Key Files and Their Purpose
+
+- `INITIAL.md` - Comprehensive project documentation and setup guide
+- `PRPs/prp_base.md` - Template for systematic feature planning with AI agents
+- `databricks.yml` - Asset Bundle configuration (to be created)
+- `resources/pipelines.yml` - Pipeline resource definitions (to be created)
+- Pipeline files should return DataFrames and use DLT decorators properly
+
+This project emphasizes modern data engineering practices using Databricks platform capabilities with enterprise-grade deployment management through Asset Bundles. 
