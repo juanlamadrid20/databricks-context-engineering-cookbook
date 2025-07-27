@@ -221,6 +221,63 @@ resources:
       continuous: false
 ```
 
+#### Serverless Job Configuration Pattern (CORRECT - NO CLUSTER CONFIGS)
+```yaml
+# resources/jobs.yml - CORRECT SERVERLESS PATTERN (default when no cluster specified)
+resources:
+  jobs:
+    example_job:
+      name: "job-name-${var.environment}"
+      # ✅ CORRECT: NO cluster configuration = serverless by default
+      
+      tasks:
+        - task_key: "task_name"
+          # ✅ CORRECT: No compute_key or cluster references
+          notebook_task:
+            notebook_path: "../src/path/to/notebook"
+            base_parameters:
+              catalog: "${var.catalog}"
+              schema: "${var.schema}"
+          
+        - task_key: "another_task"
+          python_wheel_task:
+            package_name: "my_package"
+            entry_point: "main_function"
+            parameters:
+              - "--param=value"
+```
+
+#### ❌ FORBIDDEN JOB ANTI-PATTERNS (NEVER CREATE THESE)
+```yaml
+# ❌ ALL OF THESE PATTERNS ARE FORBIDDEN - OMIT CLUSTER CONFIGS FOR SERVERLESS
+resources:
+  jobs:
+    forbidden_job_example:
+      name: "bad-example"
+      
+      # ❌ NEVER: job_clusters section
+      job_clusters:
+        - job_cluster_key: "any_key"
+          new_cluster:
+            spark_version: "any_version"
+            node_type_id: "any_type"
+            
+      # ❌ NEVER: new_cluster section at job level
+      new_cluster:
+        spark_version: "any_version"
+        node_type_id: "any_type"
+        num_workers: 2
+        
+      # ❌ NEVER: existing_cluster_id reference
+      existing_cluster_id: "cluster-id"
+      
+      # ❌ NEVER: compute specifications in tasks
+      tasks:
+        - task_key: "bad_task"
+          existing_cluster_id: "cluster-id"  # FORBIDDEN
+          job_cluster_key: "cluster_key"      # FORBIDDEN
+```
+
 #### Asset Bundle Variable Management Pattern
 ```yaml
 variables:
@@ -339,7 +396,7 @@ except:
 
 # Bronze layer with schema enforcement and cloud files
 @dlt.table(
-    name=f"{CATALOG}.{SCHEMA}.bronze_events",
+    name="bronze_events",  # CORRECT: Simple table name - catalog/schema specified at pipeline level
     comment="Raw event data ingestion with schema enforcement",
     table_properties={
         "quality": "bronze",
@@ -379,7 +436,7 @@ def bronze_events():
 
 # Lakeflow Connect pattern for external data sources
 @dlt.table(
-    name=f"{CATALOG}.{SCHEMA}.bronze_external_customers",
+    name="bronze_external_customers",  # CORRECT: Simple table name - catalog/schema specified at pipeline level
     comment="External customer data via Lakeflow Connect"
 )
 def bronze_external_customers():
@@ -390,13 +447,13 @@ def bronze_external_customers():
 def silver_events_staging():
     """Staging view for silver transformation"""
     return (
-        dlt.read(f"{CATALOG}.{SCHEMA}.bronze_events")
+        dlt.read("bronze_events")  # CORRECT: Simple table name - catalog/schema specified at pipeline level
         .filter("_rescued_data IS NULL")  # Filter out malformed records
         .filter("event_timestamp >= current_date() - interval 7 days")  # Recent data only
     )
 
 @dlt.table(
-    name=f"{CATALOG}.{SCHEMA}.silver_events",
+    name="silver_events",  # CORRECT: Simple table name - catalog/schema specified at pipeline level
     comment="Cleaned and enriched event data",
     table_properties={
         "quality": "silver",
@@ -421,7 +478,7 @@ def silver_events():
 
 # Gold layer aggregations with SCD Type 2 support
 @dlt.table(
-    name=f"{CATALOG}.{SCHEMA}.gold_daily_user_metrics",
+    name="gold_daily_user_metrics",  # CORRECT: Simple table name - catalog/schema specified at pipeline level
     comment="Daily user engagement metrics for analytics",
     table_properties={
         "quality": "gold",
@@ -430,7 +487,7 @@ def silver_events():
 )
 def gold_daily_user_metrics():
     return (
-        dlt.read(f"{CATALOG}.{SCHEMA}.silver_events")
+        dlt.read("silver_events")  # CORRECT: Simple table name - catalog/schema specified at pipeline level
         .groupBy("user_id", "event_date")
         .agg(
             count("*").alias("total_events"),
@@ -528,11 +585,12 @@ def gold_daily_summary():
 
 ### Mandatory Practices
 
-#### Compute Requirements (CRITICAL)
-1. **Serverless Compute Only**: ALL pipelines and jobs MUST use serverless compute - NO custom cluster configurations allowed
-2. **No Cluster Resources**: Never create cluster configurations in jobs.yml or any resource files
-3. **Serverless Pipeline Configuration**: DLT pipelines must specify `serverless: true` and cannot include `clusters:` section
-4. **Job Serverless**: All jobs must use serverless compute - no `job_clusters:` or `new_cluster:` configurations
+#### Compute Requirements (🚨 SERVERLESS ONLY - NO EXCEPTIONS)
+1. **Serverless by Omission**: ALL jobs use serverless compute by NOT specifying any cluster configurations
+2. **Forbidden Cluster Sections**: NEVER create `job_clusters:`, `new_cluster:`, `existing_cluster_id:` in job definitions
+3. **DLT Serverless**: Pipelines must specify `serverless: true` with NO `clusters:` section
+4. **No Task-Level Clusters**: Tasks must NOT include `job_cluster_key:`, `existing_cluster_id:`, or `new_cluster:` fields
+5. **Forbidden Cluster Fields**: NEVER use `node_type_id`, `num_workers`, `spark_version`, `driver_node_type_id` anywhere
 
 #### Asset Bundle Requirements
 5. **Asset Bundle First**: Never deploy manually - always use `databricks bundle deploy`
@@ -543,14 +601,16 @@ def gold_daily_summary():
 10. **Variable Defaults**: Always provide sensible defaults for Asset Bundle variables
 
 #### Pipeline Development Standards  
-11. **Unity Catalog Governance**: Use three-part naming `{catalog}.{schema}.{table}` everywhere
-12. **Configuration Variables**: Use `spark.conf.get("CATALOG", "default")` with Asset Bundle variables
-13. **DLT Dependencies**: Use `dlt.read()` and `dlt.read_stream()` for table dependencies, never `spark.read()`
-14. **Data Quality**: Include multi-level `@dlt.expect_*` decorators on all tables
-15. **Schema Enforcement**: Define explicit schemas for bronze layer ingestion
-16. **Path Handling**: Include comprehensive path resolution in pipeline files
-17. **PII Handling**: Mark PII fields in table properties for governance compliance
-18. **Change Data Capture**: Enable CDC on gold tables with `delta.enableChangeDataFeed`
+11. **DLT Table Names**: Use simple table names in `@dlt.table(name="table_name")` decorators - NO full namespace format
+12. **DLT Table References**: Use simple table names in `dlt.read("table_name")` calls - NO full namespace format
+13. **Unity Catalog**: Catalog and schema are specified at pipeline level in Asset Bundle configuration
+13. **Configuration Variables**: Use `spark.conf.get("CATALOG", "default")` with Asset Bundle variables
+14. **DLT Dependencies**: Use `dlt.read()` and `dlt.read_stream()` for table dependencies, never `spark.read()`
+15. **Data Quality**: Include multi-level `@dlt.expect_*` decorators on all tables
+16. **Schema Enforcement**: Define explicit schemas for bronze layer ingestion
+17. **Path Handling**: Include comprehensive path resolution in pipeline files
+18. **PII Handling**: Mark PII fields in table properties for governance compliance
+19. **Change Data Capture**: Enable CDC on gold tables with `delta.enableChangeDataFeed`
 
 ### 🚨 DLT Streaming Ingestion Best Practice
 
@@ -594,7 +654,8 @@ Before implementing features:
 
 #### Pipeline Development Pitfalls
 - **Using `spark.read()` instead of `dlt.read()`** for dependencies (breaks DLT lineage)
-- **Missing Unity Catalog three-part naming** `{catalog}.{schema}.{table}` format
+- **🚨 Using full namespace in dlt.read()** - use `dlt.read("table_name")` NOT `dlt.read(f"{CATALOG}.{SCHEMA}.table_name")`
+- **Missing Unity Catalog three-part naming** in `@dlt.table(name=...)` decorators (but NOT in `dlt.read()` calls)
 - **Missing data quality expectations** on tables (mandatory for production pipelines)
 - **Using `display()` in DLT functions** (return DataFrames instead)
 - **Deploying directly to production** without dev environment testing
@@ -603,6 +664,7 @@ Before implementing features:
 - **Not handling `_rescued_data`** in silver layer transformations
 - **Using streaming without appropriate triggers** (can cause performance issues)
 - **Using deprecated `input_file_name()` function** - use `_metadata` column instead (see: https://docs.databricks.com/aws/en/ingestion/file-metadata-column)
+- **🚨 Using invalid `databricks sql` commands** - use `databricks api post /api/2.0/sql/statements` instead
 
 ### Testing Strategy
 1. **Syntax Validation**: `databricks bundle validate --target dev`
@@ -621,13 +683,28 @@ python -m py_compile src/pipelines/**/*.py
 databricks bundle deploy --target dev
 databricks jobs run-now --job-id <pipeline_job_id>
 
-# Data quality monitoring
-databricks sql query "SELECT * FROM system.event_log.dlt_pipeline_events WHERE pipeline_id = '<pipeline_id>'"
+# Data quality monitoring using SQL API
+databricks api post /api/2.0/sql/statements \
+  --json '{
+    "statement": "SELECT * FROM system.event_log.dlt_pipeline_events WHERE pipeline_id = '\'<pipeline_id>\'",
+    "warehouse_id": "<TODO: warehouse_id>"
+  }'
 
-# Unity Catalog validation
+# Table validation using SQL API
+databricks api post /api/2.0/sql/statements \
+  --json '{
+    "statement": "SELECT COUNT(*) as record_count FROM <catalog>.<schema>.<table_name>",
+    "warehouse_id": "<TODO: warehouse_id>"
+  }'
+
+# Unity Catalog validation using CLI
 databricks catalogs get <catalog_name>
-databricks schemas list --catalog-name <catalog>
-databricks tables list --catalog-name <catalog> --schema-name <schema>
+databricks schemas list <catalog>
+databricks tables list <catalog> <schema>
+
+# Pipeline status monitoring
+databricks pipelines list-pipelines --filter "name LIKE '%<pipeline_name>%'"
+databricks pipelines get <pipeline_id>
 ```
 
 ## Key Files and Their Purpose
