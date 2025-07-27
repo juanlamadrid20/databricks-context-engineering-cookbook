@@ -97,7 +97,7 @@ def bronze_claims():
     return (
         spark.readStream.format("cloudFiles")  # ← CRITICAL: Must include .format("cloudFiles")
         .option("cloudFiles.format", "csv")
-        .option("cloudFiles.header", "true")
+        .option("header", "true")
         .option("cloudFiles.schemaLocation", f"{VOLUMES_PATH}/_checkpoints/bronze_claims")
         .option("cloudFiles.inferColumnTypes", "false")  # Use explicit schema
         .option("cloudFiles.schemaEvolutionMode", "rescue")  # Handle schema changes

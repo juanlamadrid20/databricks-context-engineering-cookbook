@@ -347,7 +347,7 @@ def bronze_table_raw():
     return (
         spark.readStream.format("cloudFiles")  # ← CRITICAL: Must include .format("cloudFiles")
         .option("cloudFiles.format", "csv")
-        .option("cloudFiles.header", "true")
+        .option("header", "true")
         .option("cloudFiles.schemaLocation", f"{VOLUMES_PATH}/_checkpoints/table_name")
         .schema(TABLE_SCHEMA)
         .load(f"{VOLUMES_PATH}")
@@ -359,7 +359,7 @@ def bronze_table_raw():
     return (
         spark.readStream  # ← MISSING: .format("cloudFiles")
         .option("cloudFiles.format", "csv")  # This alone is not sufficient
-        .option("cloudFiles.header", "true")
+        .option("header", "true")
         .load(f"{VOLUMES_PATH}")
     )
 ```
@@ -512,7 +512,7 @@ def gold_daily_user_metrics():
 return (
     spark.readStream
     .option("cloudFiles.format", "csv")
-    .option("cloudFiles.header", "true")
+    .option("header", "true")
     .schema(schema)
     .load(f"{VOLUMES_PATH}/data_*.csv")
     .select("*", "_metadata")  # REQUIRED: Explicitly select metadata
