@@ -7,7 +7,7 @@ variables:
     
   schema:
     description: "Schema name within catalog"
-    default: "data_eng"
+    default: "healthcare_data"
     
   environment:
     description: "Environment identifier (dev/prod)"
@@ -27,16 +27,16 @@ targets:
     mode: development
     variables:
       catalog: "juan_dev"
-      schema: "data_eng"
+      schema: "healthcare_data"
       environment: "dev"
-      volumes_path: "/Volumes/juan_dev/data_eng/raw_data"
+      volumes_path: "/Volumes/juan_dev/healthcare_data/raw_data"
       max_files_per_trigger: 50
       
   prod:
     mode: production
     variables:
       catalog: "juan_prod"
-      schema: "data_eng" 
+      schema: "healthcare_data" 
       environment: "prod"
-      volumes_path: "/Volumes/juan_prod/data_eng/raw_data"
+      volumes_path: "/Volumes/juan_prod/healthcare_data/raw_data"
       max_files_per_trigger: 200
