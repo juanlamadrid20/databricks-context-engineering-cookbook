@@ -49,6 +49,7 @@ except ImportError:
     MAX_PATIENT_AGE = 85
     MIN_BMI = 16.0
     MAX_BMI = 50.0
+    MAX_CHILDREN = 10
     TARGET_DATA_QUALITY_SCORE = 99.5
 
 # Staging view for silver transformation

@@ -9,8 +9,9 @@ import sys
 import os
 from pyspark.sql.functions import (
     current_timestamp, col, lit, when, trim, upper, regexp_replace,
-    to_date, datediff, from_json, round as spark_round, count, sum as spark_sum,
-    avg, min as spark_min, max as spark_max, stddev, broadcast, get_json_object
+    to_date, datediff, from_json, round as spark_round, count, countDistinct, sum as spark_sum,
+    avg, min as spark_min, max as spark_max, stddev, broadcast, get_json_object,
+    size, split
 )
 from pyspark.sql.types import MapType, StringType
 

@@ -10,7 +10,7 @@ import os
 from pyspark.sql.functions import (
     current_timestamp, col, lit, when, coalesce, row_number, max as spark_max,
     lag, lead, to_date, date_sub, date_add, desc, asc, sum as spark_sum,
-    count, avg, round as spark_round
+    count, avg, round as spark_round, concat_ws
 )
 from pyspark.sql.window import Window
 

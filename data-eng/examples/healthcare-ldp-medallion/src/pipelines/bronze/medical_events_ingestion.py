@@ -7,7 +7,7 @@ Implements comprehensive clinical data validation and audit trails for HIPAA com
 import dlt
 import sys
 import os
-from pyspark.sql.functions import current_timestamp, col, lit, count, countDistinct, avg, min as spark_min, max as spark_max
+from pyspark.sql.functions import current_timestamp, col, lit, count, countDistinct, avg, min as spark_min, max as spark_max, when
 from pyspark.sql.types import StructType, StructField, StringType, TimestampType
 
 # Environment-aware configuration with Unity Catalog
@@ -144,7 +144,7 @@ def bronze_medical_events_quality_metrics():
             count("primary_diagnosis").alias("events_with_diagnosis"),
             count("vital_signs").alias("events_with_vitals"),
             count("medications_prescribed").alias("events_with_medications"),
-            avg("CAST(visit_duration_minutes AS INT)").alias("avg_visit_duration"),
+            avg(col("visit_duration_minutes").cast("int")).alias("avg_visit_duration"),
             spark_min("_ingested_at").alias("batch_start"),
             spark_max("_ingested_at").alias("batch_end")
         )

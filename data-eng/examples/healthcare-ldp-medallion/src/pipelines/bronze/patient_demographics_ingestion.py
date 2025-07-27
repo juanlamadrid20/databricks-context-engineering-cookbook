@@ -7,7 +7,7 @@ Implements HIPAA-compliant data ingestion with comprehensive audit trails.
 import dlt
 import sys
 import os
-from pyspark.sql.functions import current_timestamp, col, lit
+from pyspark.sql.functions import current_timestamp, col, lit, count, countDistinct, avg, min as spark_min, max as spark_max, sum as spark_sum
 from pyspark.sql.types import StructType, StructField, StringType, TimestampType
 
 # Environment-aware configuration with Unity Catalog
@@ -137,10 +137,10 @@ def bronze_patients_quality_metrics():
             count("patient_id").alias("valid_patient_ids"),
             count("ssn").alias("records_with_ssn"),
             countDistinct("patient_id").alias("unique_patients"),
-            min("_ingested_at").alias("batch_start"),
-            max("_ingested_at").alias("batch_end"),
-            avg("CAST(age AS INT)").alias("avg_age"),
-            sum("CAST(charges AS DOUBLE)").alias("total_charges")
+            spark_min("_ingested_at").alias("batch_start"),
+            spark_max("_ingested_at").alias("batch_end"),
+            avg(col("age").cast("int")).alias("avg_age"),
+            spark_sum(col("charges").cast("double")).alias("total_charges")
         )
         .withColumn("data_quality_score", 
                    (col("valid_patient_ids") / col("total_records") * 100))

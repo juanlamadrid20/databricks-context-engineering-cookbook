@@ -47,7 +47,7 @@ resources:
         "data_classification": "PHI"
         "environment": "${var.environment}"
         # HIPAA audit and encryption settings
-        "spark.databricks.delta.properties.defaults.logRetentionDuration": "interval 7 years"
+        "spark.databricks.delta.properties.defaults.logRetentionDuration": "interval 365 days"
         "spark.sql.adaptive.enabled": "true"
         "spark.sql.adaptive.coalescePartitions.enabled": "true"
         
