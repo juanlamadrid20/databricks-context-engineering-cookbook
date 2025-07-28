@@ -115,16 +115,16 @@ def silver_claims():
                         spark_round(col("claim_amount").cast("double"), 2))
                    .otherwise(None))
         
-        # DATE PARSING AND VALIDATION
+        # DATE PARSING AND VALIDATION - Updated to handle ISO timestamp format
         .withColumn("claim_date_parsed", 
-                   to_date(col("claim_date"), "yyyy-MM-dd"))
+                   to_date(col("claim_date")))
         .withColumn("approval_date_parsed", 
                    when(col("approval_date").isNotNull() & (col("approval_date") != ""),
-                        to_date(col("approval_date"), "yyyy-MM-dd"))
+                        to_date(col("approval_date")))
                    .otherwise(None))
         .withColumn("payment_date_parsed", 
                    when(col("payment_date").isNotNull() & (col("payment_date") != ""),
-                        to_date(col("payment_date"), "yyyy-MM-dd"))
+                        to_date(col("payment_date")))
                    .otherwise(None))
         
         # CLAIM STATUS AND TYPE STANDARDIZATION

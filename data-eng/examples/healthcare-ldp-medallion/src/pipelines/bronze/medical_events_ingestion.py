@@ -81,7 +81,7 @@ except ImportError:
 @dlt.expect_all({
     "valid_event_description": "event_description IS NOT NULL AND LENGTH(event_description) > 5",
     "valid_facility_info": "facility_name IS NOT NULL AND facility_type IS NOT NULL",
-    "reasonable_visit_duration": "visit_duration_minutes IS NULL OR CAST(visit_duration_minutes AS INT) BETWEEN 5 AND 1440",  # 5 min to 24 hours
+    "reasonable_visit_duration": "visit_duration_minutes IS NULL OR (visit_duration_minutes RLIKE '^[0-9]+$' AND CAST(visit_duration_minutes AS INT) BETWEEN 5 AND 1440)",  # Robust check
     "valid_provider_type": "provider_type IS NOT NULL",
     "valid_primary_diagnosis": "primary_diagnosis IS NOT NULL AND LENGTH(primary_diagnosis) >= 3"
 })

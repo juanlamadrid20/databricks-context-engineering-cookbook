@@ -109,9 +109,9 @@ def silver_medical_events():
     return (
         dlt.read("silver_medical_events_staging")
         
-        # DATE PARSING AND TEMPORAL VALIDATION
+        # DATE PARSING AND TEMPORAL VALIDATION - Updated to handle ISO timestamp format
         .withColumn("event_date_parsed", 
-                   to_date(col("event_date"), "yyyy-MM-dd"))
+                   to_date(col("event_date")))
         
         # EVENT AND FACILITY STANDARDIZATION
         .withColumn("event_type_standardized", 
