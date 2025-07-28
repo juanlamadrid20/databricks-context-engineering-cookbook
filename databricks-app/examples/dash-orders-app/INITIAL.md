@@ -57,51 +57,7 @@ databricks-app/
 ### 1. DATABASE LAYER (`utils/database.py`)
 
 **Connection Management:**
-- Implement connection managment use SQLAlechmy and psycopg3 like in the following example, but provide option to pass in username and password or use the current user.
-
-```python
-from sqlalchemy import create_engine, text, event
-from databricks.sdk import WorkspaceClient
-import os
-import uuid
-import time
-
-global host, instance_name, database_name
-instance_name = os.getenv("LAKEBASE_INSTANCE_NAME", "")
-database_name = os.getenv("LAKEBASE_DATABASE_NAME", "databricks_postgres")
-
-# Initialize Databricks SDK client
-w = WorkspaceClient()
-
-instance = w.database.get_database_instance(name=instance_name)
-
-username = w.current_user.me().user_name
-host = instance.read_write_dns
-port = 5432
-database = database_name
-
-# sqlalchemy setup + function to refresh the OAuth token that is used as the Postgres password every 15 minutes.
-connection_pool = create_engine(f"postgresql+psycopg://{username}:@{host}:{port}/{database}")
-postgres_password = None
-last_password_refresh = time.time()
-
-@event.listens_for(connection_pool, "do_connect")
-def provide_token(dialect, conn_rec, cargs, cparams):
-    global postgres_password, last_password_refresh, host
-
-    if postgres_password is None or time.time() - last_password_refresh > 900:
-        print("Refreshing PostgreSQL OAuth token")
-        cred = w.database.generate_database_credential(request_id=str(uuid.uuid4()), instance_names=[instance_name])
-        postgres_password = cred.token
-        last_password_refresh = time.time()
-
-    cparams["password"] = postgres_password
-
-with connection_pool.connect() as conn:
-    result = conn.execute(text("SELECT version()"))
-    for row in result:
-        print(f"Connected to PostgreSQL database. Version: {row}")
-```
+- Implement connection managment use SQLAlechmy and psycopg3. Provide option to pass in username and password or use the current user.
 
 ### 2. CONFIGURATION (`config.py`)
 
@@ -365,21 +321,6 @@ databricks-sdk>=0.18.0
 ### Code Examples
 - [Retail 360 demos](https://www.databricks.com/resources/demos/tutorials/lakehouse-platform/c360-platform-reduce-churn?itm_data=demo_center)
 
-## DOCUMENTATION
-
-### Primary Documentation Sources
-- **Context7 MCP Server**: For best practices and updated documentation
-- **Databricks Documentation**:
-  - [Databricks Lakebase](https://docs.databricks.com/aws/en/oltp/query/)
-  - [Databricks Apps Guide](https://docs.databricks.com/aws/en/dev-tools/databricks-apps/)
-  - [Databricks Apps Cookbook](https://apps-cookbook.dev/)
-
-### Additional Resources
-- **Data Governance**: Unity Catalog policies for PII handling in user data
-- [Databricks Asset Bundles](https://docs.databricks.com/dev-tools/bundles/index.html)
-- [Delta Lake Documentation](https://docs.delta.io/)
-- [Medallion Architecture Best Practices](https://www.databricks.com/glossary/medallion-architecture)
-- [Databricks App Code examples](https://github.com/databricks/app-templates)
 
 ## DEVELOPMENT GUIDELINES
 
@@ -396,44 +337,6 @@ databricks-sdk>=0.18.0
 4. **Configuration via Variables**: Use Asset Bundle variables
 7. **Testing**: Include unit tests for data generation logic
 8. **Documentation**: Document code for users and for developers.
-
-
-### Proven Configuration Patterns
-#### Asset Bundle Variable Management
-```yaml
-variables:
-  catalog:
-    description: "Unity Catalog name"
-    default: "juan_dev"
-  schema:
-    description: "Schema name for your data"
-    default: "sales_ops"
-  max_files_per_trigger:
-    description: "Performance tuning parameter"
-    default: 100
-
-targets:
-  dev:
-    variables:
-      catalog: "juan_dev"
-      schema: "sales_ops"
-      max_files_per_trigger: 100
-  prod:
-    variables:
-      catalog: "juan_prod"
-      schema: "sales_ops"
-      max_files_per_trigger: 1000
-```
-
-
-### Common Pitfalls to Avoid
-- **Manual deployment** instead of using Asset Bundles
-- **Missing environment separation** in Asset Bundle configuration
-- **Hard-coding workspace URLs** or environment-specific values in databricks.yml
-- **Creating unused utility modules** - prefer Asset Bundle variables
-- Hard-coding connection strings or credentials
-- Over-engineering synthetic data generation (start simple)
-- Splitting code into too many folders and files (this should be a simple codebase)
 
 
 ## CONTRIBUTING
