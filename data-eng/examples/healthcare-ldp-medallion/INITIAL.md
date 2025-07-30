@@ -56,26 +56,56 @@ Development Hierarchy:
   - Frequency: On-demand generation for testing and development
   - Output: Written to same Volumes path for consistent processing
 
-#### Entity Relationship Model
+#### Entity Relationship Model (MANDATORY - STRICTLY ENFORCE)
+
+**🚨 CRITICAL: ALL synthetic data generation and medallion architecture implementation MUST strictly adhere to this exact three-entity model. No additional entities or deviations allowed.**
+
 ```
-Health Insurance Domain: Patient Analytics
-├── Patients (dim_patients)
-│   ├── patient_id (PK)
-│   ├── demographics (age, gender, location)
-│   ├── insurance_details (plan_type, coverage_start_date)
-│   └── SCD Type 2 for historical tracking
-├── Claims (fact_claims)
-│   ├── claim_id (PK)
-│   ├── patient_id (FK)
-│   ├── claim_amount, claim_date
-│   ├── diagnosis_code, procedure_code
-│   └── claim_status
-└── Medical_History (fact_medical_events)
-    ├── event_id (PK)
-    ├── patient_id (FK)
-    ├── event_date, event_type
-    └── medical_provider
+Health Insurance Domain: Patient Analytics (EXACTLY 3 ENTITIES)
+├── Patients (dim_patients) - PRIMARY ENTITY
+│   ├── patient_id (PK) - String, unique identifier
+│   ├── demographics (age, sex, region) - Core patient attributes
+│   │   ├── age - Integer, 18-85 range (normal distribution μ=45, σ=15)
+│   │   ├── sex - String, MALE/FEMALE
+│   │   └── region - String, NORTHEAST/NORTHWEST/SOUTHEAST/SOUTHWEST
+│   ├── health_metrics (bmi, smoker, children) - Health and lifestyle data
+│   │   ├── bmi - Double, 16-50 range (normal distribution μ=28, σ=6)
+│   │   ├── smoker - Boolean, age-correlated smoking probability
+│   │   └── children - Integer, number of dependents (Poisson λ=1.2)
+│   ├── financial_data (charges) - Insurance cost information
+│   │   └── charges - Double, calculated premium based on risk factors
+│   ├── insurance_details (plan_type, coverage_start_date) - Insurance information
+│   ├── temporal_data (timestamp) - Record creation timestamp
+│   └── SCD Type 2 for historical tracking - Track changes over time
+│
+├── Claims (fact_claims) - TRANSACTIONAL ENTITY
+│   ├── claim_id (PK) - String, unique claim identifier
+│   ├── patient_id (FK) - String, references Patients.patient_id
+│   ├── claim_amount, claim_date - Financial and temporal data
+│   ├── diagnosis_code, procedure_code - Medical coding (ICD-10, CPT)
+│   └── claim_status - Processing status (submitted, approved, denied, paid)
+│
+└── Medical_History (fact_medical_events) - EVENT ENTITY
+    ├── event_id (PK) - String, unique event identifier
+    ├── patient_id (FK) - String, references Patients.patient_id
+    ├── event_date, event_type - Temporal and categorical data
+    └── medical_provider - Healthcare provider information
 ```
+
+#### Mandatory Entity Implementation Requirements
+
+**🚨 SYNTHETIC DATA GENERATION REQUIREMENTS:**
+1. **Generate EXACTLY 3 CSV files**: patients.csv, claims.csv, medical_events.csv
+2. **Maintain referential integrity**: All claims.patient_id and medical_events.patient_id MUST reference valid patients.patient_id
+3. **Realistic ratios**: Each patient should have 2-5 claims and 3-8 medical events on average
+4. **No additional entities**: Do not create provider tables, diagnosis tables, or other entities
+
+**🚨 MEDALLION ARCHITECTURE REQUIREMENTS:**
+1. **Bronze Layer**: Exactly 3 tables (bronze_patients, bronze_claims, bronze_medical_events)
+2. **Silver Layer**: Exactly 3 tables (silver_patients, silver_claims, silver_medical_events) with data quality and standardization
+3. **Gold Layer**: Dimensional model with dim_patients and 2 fact tables (fact_claims, fact_medical_events)
+4. **Foreign Key Validation**: Silver and Gold layers MUST validate and maintain referential integrity
+5. **No Schema Drift**: Additional columns or entities require explicit approval and domain model updates
 
 ### Medallion Architecture Implementation
 
@@ -125,10 +155,6 @@ databricks-data-engineering-project/
 ├── resources/                  # Asset Bundle resource definitions
 │   ├── pipelines.yml          # DLT pipeline configurations
 │   ├── jobs.yml               # Job workflow definitions
-├── environments/              # Environment-specific configurations
-│   ├── dev.yml               # Development environment settings
-│   ├── staging.yml           # Staging environment settings
-│   └── prod.yml              # Production environment settings
 ├── src/                      # Source code
 │   ├── pipelines/            # DLT pipeline definitions
 │   │   ├── bronze/           # Raw data ingestion pipelines
@@ -180,21 +206,37 @@ databricks-data-engineering-project/
 
 > **💻 Pipeline Configuration Patterns**: See `CLAUDE.md` for Asset Bundle configuration patterns, environment setup, and path handling.
 
-#### Health Insurance Patient Data Schema
+#### Health Insurance Patient Data Schema (COMPLETE DOMAIN MODEL)
 ```python
-# Domain-specific schema for health insurance patient data
-from pyspark.sql.types import StructType, StructField, StringType, IntegerType, TimestampType, DoubleType
+# Domain-specific schema for health insurance patient data - MANDATORY FIELDS
+from pyspark.sql.types import StructType, StructField, StringType, IntegerType, TimestampType, DoubleType, BooleanType
 
+# COMPLETE PATIENT SCHEMA - MUST INCLUDE ALL FIELDS
 PATIENT_SCHEMA = StructType([
-    StructField("patient_id", StringType(), False),
+    # Primary Key
+    StructField("patient_id", StringType(), False),      # PK - MANDATORY
+    
+    # Demographics
     StructField("first_name", StringType(), True),
     StructField("last_name", StringType(), True),
-    StructField("age", IntegerType(), True),
-    StructField("gender", StringType(), True),
-    StructField("address", StringType(), True),
+    StructField("age", IntegerType(), True),             # 18-85 range
+    StructField("sex", StringType(), True),              # MALE/FEMALE
+    StructField("region", StringType(), True),           # NORTHEAST/NORTHWEST/SOUTHEAST/SOUTHWEST
+    
+    # Health Metrics
+    StructField("bmi", DoubleType(), True),              # 16-50 range
+    StructField("smoker", BooleanType(), True),          # Boolean flag
+    StructField("children", IntegerType(), True),        # Number of dependents
+    
+    # Financial Data
+    StructField("charges", DoubleType(), True),          # Calculated insurance premium
+    
+    # Insurance Details
     StructField("insurance_plan", StringType(), True),
     StructField("coverage_start_date", StringType(), True),
-    StructField("claim_history", StringType(), True)
+    
+    # Temporal Data
+    StructField("timestamp", StringType(), True),        # Record creation timestamp
 ])
 ```
 
@@ -223,16 +265,90 @@ PATIENT_SCHEMA = StructType([
 - **Primary Keys**: patient_id for all patient-related tables, claim_id for claims
 - **Partitioning Strategy**: Partition by ingestion date for bronze, by patient creation date for silver/gold
 
-### Source Schema Elements
-#### Primary Tables:
-- **bronze_patients**: Raw patient demographic and insurance data from CSV files
-  - patient_id (String, PK), first_name, last_name, age (Integer), gender, address, insurance_plan, coverage_start_date
-- **silver_patients**: Cleaned and validated patient data with data quality checks
-- **gold_patient_demographics**: Aggregated patient analytics for reporting
-- **Metadata Fields**: _ingested_at (Timestamp), _pipeline_env (String), _rescued_data (for malformed records)
-- **Data Quality**: Comprehensive expectations for age ranges, valid gender codes, non-null patient IDs
-- **Incremental Loading**: Append-only pattern for new patient registrations
-- **SCD Type 2**: For tracking changes in patient insurance plans over time
+### Mandatory Schema Implementation (DOMAIN MODEL ENFORCEMENT)
+
+**🚨 CRITICAL: Implementation MUST create EXACTLY these tables with EXACTLY these schemas - no additions, no omissions.**
+
+#### Bronze Layer Tables (RAW DATA - EXACTLY 3 TABLES)
+
+**1. bronze_patients** (Raw patient demographic and insurance data)
+```python
+PATIENT_SCHEMA = StructType([
+    # Primary Key
+    StructField("patient_id", StringType(), False),      # PK - MANDATORY
+    
+    # Demographics
+    StructField("first_name", StringType(), True),       # Demographics
+    StructField("last_name", StringType(), True),        # Demographics  
+    StructField("age", IntegerType(), True),             # Demographics (18-85)
+    StructField("sex", StringType(), True),              # Demographics (MALE/FEMALE)
+    StructField("region", StringType(), True),           # Location (NORTHEAST/NORTHWEST/SOUTHEAST/SOUTHWEST)
+    
+    # Health Metrics
+    StructField("bmi", DoubleType(), True),              # Health metric (16-50)
+    StructField("smoker", BooleanType(), True),          # Lifestyle factor
+    StructField("children", IntegerType(), True),        # Number of dependents
+    
+    # Financial Data
+    StructField("charges", DoubleType(), True),          # Calculated insurance premium
+    
+    # Insurance Details
+    StructField("insurance_plan", StringType(), True),   # Insurance details
+    StructField("coverage_start_date", StringType(), True), # Insurance details
+    
+    # Temporal Data
+    StructField("timestamp", StringType(), True),        # Record creation timestamp
+    
+    # Pipeline Metadata fields
+    StructField("_ingested_at", TimestampType(), True),
+    StructField("_pipeline_env", StringType(), True)
+])
+```
+
+**2. bronze_claims** (Raw insurance claims data)
+```python
+CLAIMS_SCHEMA = StructType([
+    StructField("claim_id", StringType(), False),        # PK - MANDATORY
+    StructField("patient_id", StringType(), False),     # FK to patients - MANDATORY
+    StructField("claim_amount", DoubleType(), True),    # Financial data
+    StructField("claim_date", StringType(), True),      # Temporal data
+    StructField("diagnosis_code", StringType(), True),  # ICD-10 code
+    StructField("procedure_code", StringType(), True),  # CPT code
+    StructField("claim_status", StringType(), True),    # Status (submitted/approved/denied/paid)
+    # Metadata fields
+    StructField("_ingested_at", TimestampType(), True),
+    StructField("_pipeline_env", StringType(), True)
+])
+```
+
+**3. bronze_medical_events** (Raw medical history/events data)
+```python
+MEDICAL_EVENTS_SCHEMA = StructType([
+    StructField("event_id", StringType(), False),       # PK - MANDATORY
+    StructField("patient_id", StringType(), False),    # FK to patients - MANDATORY
+    StructField("event_date", StringType(), True),     # Temporal data
+    StructField("event_type", StringType(), True),     # Event category
+    StructField("medical_provider", StringType(), True), # Provider info
+    # Metadata fields
+    StructField("_ingested_at", TimestampType(), True),
+    StructField("_pipeline_env", StringType(), True)
+])
+```
+
+#### Silver Layer Requirements (DATA QUALITY - EXACTLY 3 TABLES)
+- **silver_patients**: Cleaned patient data with HIPAA compliance and data quality validation
+- **silver_claims**: Validated claims with referential integrity checks to silver_patients
+- **silver_medical_events**: Cleaned medical events with referential integrity checks to silver_patients
+
+#### Gold Layer Requirements (DIMENSIONAL MODEL - EXACTLY 3 TABLES)
+- **dim_patients**: SCD Type 2 patient dimension with complete patient 360 view
+- **fact_claims**: Claims fact table with pre-aggregated metrics and foreign key to dim_patients
+- **fact_medical_events**: Medical events fact table with foreign key to dim_patients
+
+#### Referential Integrity Requirements (ENFORCE ACROSS ALL LAYERS)
+1. **Bronze Layer**: Basic foreign key presence validation
+2. **Silver Layer**: Strict referential integrity - orphaned records must be quarantined
+3. **Gold Layer**: Dimensional modeling with proper surrogate keys and foreign key relationships
 
 ### Best Practices
 
@@ -245,21 +361,44 @@ PATIENT_SCHEMA = StructType([
 4. **Healthcare Compliance**: Ensure PII handling meets HIPAA requirements and data governance standards
 5. **Schema Evolution**: Design for schema changes in patient data over time
 
-#### Health Insurance Data Quality Patterns
+#### Health Insurance Data Quality Patterns (COMPLETE SCHEMA VALIDATION)
 ```python
-# Domain-specific data quality expectations for patient data
+# Domain-specific data quality expectations for patient data - ALL FIELDS
 @dlt.expect_all_or_drop({
+    # Primary Key Validation
     "valid_patient_id": "patient_id IS NOT NULL AND LENGTH(patient_id) >= 5",
-    "valid_age": "age IS NOT NULL AND age BETWEEN 0 AND 150",
-    "valid_gender": "gender IN ('M', 'F', 'Other', 'Unknown')"
+    
+    # Demographics Validation
+    "valid_age": "age IS NOT NULL AND age BETWEEN 18 AND 85",
+    "valid_sex": "sex IS NOT NULL AND sex IN ('MALE', 'FEMALE')",
+    "valid_region": "region IS NOT NULL AND region IN ('NORTHEAST', 'NORTHWEST', 'SOUTHEAST', 'SOUTHWEST')",
+    
+    # Health Metrics Validation
+    "valid_bmi": "bmi IS NOT NULL AND bmi BETWEEN 16 AND 50",
+    "valid_smoker": "smoker IS NOT NULL",
+    "valid_children": "children IS NOT NULL AND children >= 0",
+    
+    # Financial Data Validation
+    "valid_charges": "charges IS NOT NULL AND charges > 0"
 })
 @dlt.expect_all({
+    # Name Completeness
     "complete_name": "first_name IS NOT NULL AND last_name IS NOT NULL",
+    
+    # Insurance Details
     "valid_coverage_date": "coverage_start_date IS NOT NULL",
-    "valid_insurance_plan": "insurance_plan IS NOT NULL"
+    "valid_insurance_plan": "insurance_plan IS NOT NULL",
+    
+    # Temporal Data
+    "valid_timestamp": "timestamp IS NOT NULL",
+    
+    # Reasonable Range Checks
+    "reasonable_age": "age BETWEEN 18 AND 80",  # Most common range
+    "reasonable_bmi": "bmi BETWEEN 18 AND 40",  # Most common range
+    "reasonable_children": "children <= 10"     # Reasonable upper bound
 })
 def silver_patients():
-    return dlt.read(f"{CATALOG}.{SCHEMA}.bronze_patients")
+    return dlt.read("bronze_patients")  # CORRECT: Simple table name - catalog/schema specified at pipeline level
 ```
 
 ### Common Pitfalls to Avoid
@@ -267,6 +406,16 @@ def silver_patients():
 > **⚠️ Asset Bundle & Pipeline Pitfalls**: Complete list of configuration and development pitfalls documented in `CLAUDE.md` - Common Pitfalls section.
 
 #### Domain-Specific Pitfalls
+
+**🚨 DOMAIN MODEL VIOLATIONS (CRITICAL - NEVER DO THESE):**
+- **Creating additional entities** - Only 3 entities allowed: Patients, Claims, Medical_Events
+- **Missing referential integrity** - All claims and medical_events MUST reference valid patient_id
+- **Incorrect table counts** - Each layer must have exactly 3 tables (bronze_*, silver_*, gold_*)
+- **Schema deviations** - Use EXACTLY the schemas defined in Mandatory Schema Implementation section
+- **Additional CSV files** - Generate only patients.csv, claims.csv, medical_events.csv
+- **Foreign key violations** - Maintain 1:N relationships (1 patient : many claims/events)
+
+**General Development Pitfalls:**
 - **Over-engineering synthetic data generation** (start simple with basic patient demographics)
 - **Missing proper error handling** in DLT pipelines
 - **Not considering healthcare data retention** and compliance policies

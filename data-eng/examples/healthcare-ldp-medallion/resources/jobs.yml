@@ -1,0 +1,77 @@
+resources:
+  jobs:
+    synthetic_data_generation_job:
+      name: "[${bundle.target}] Healthcare Synthetic Data Generation"
+      # ✅ CORRECT: NO cluster configuration = serverless by default
+      
+      tasks:
+        - task_key: "generate_synthetic_data"
+          # ✅ CORRECT: No compute_key or cluster references - serverless by default
+          notebook_task:
+            notebook_path: "../src/jobs/synthetic_data_generation.py"
+            base_parameters:
+              catalog: "${var.catalog}"
+              schema: "${var.schema}"
+              volumes_path: "${var.volumes_path}"
+              environment: "${var.environment}"
+              patient_count: "1000"
+              claims_per_patient: "3"
+              events_per_patient: "5"
+          
+      schedule:
+        quartz_cron_expression: "0 0 2 * * ?"  # Daily at 2 AM
+        timezone_id: "UTC"
+        
+      timeout_seconds: 3600  # 1 hour timeout
+      max_concurrent_runs: 1
+      
+      tags:
+        environment: "${var.environment}"
+        pipeline: "healthcare-data"
+        compliance: "HIPAA"
+    
+    data_quality_monitoring_job:
+      name: "[${bundle.target}] Healthcare Data Quality Monitoring"
+      # ✅ CORRECT: NO cluster configuration = serverless by default
+      
+      tasks:
+        - task_key: "monitor_pipeline_health"
+          # ✅ CORRECT: No compute_key or cluster references
+          notebook_task:
+            notebook_path: "../src/jobs/data_quality_monitoring.py"
+            base_parameters:
+              catalog: "${var.catalog}"
+              schema: "${var.schema}"
+              environment: "${var.environment}"
+              pipeline_name: "healthcare-patient-data-pipeline-${var.environment}"
+              quality_threshold: "99.5"
+              
+        - task_key: "hipaa_compliance_check"
+          depends_on:
+            - task_key: "monitor_pipeline_health"
+          notebook_task:
+            notebook_path: "../src/jobs/hipaa_compliance_monitoring.py"
+            base_parameters:
+              catalog: "${var.catalog}"
+              schema: "${var.schema}"
+              environment: "${var.environment}"
+              audit_retention_days: "2555"  # 7 years HIPAA requirement
+          
+      schedule:
+        quartz_cron_expression: "0 */15 * * * ?"  # Every 15 minutes
+        timezone_id: "UTC"
+        
+      timeout_seconds: 1800  # 30 minutes timeout
+      max_concurrent_runs: 1
+      
+      email_notifications:
+        on_failure:
+          - "healthcare-data-alerts@company.com"
+        on_duration_warning_threshold_exceeded:
+          - "healthcare-data-alerts@company.com"
+          
+      tags:
+        environment: "${var.environment}"
+        pipeline: "healthcare-data"
+        compliance: "HIPAA"
+        monitoring: "data-quality"

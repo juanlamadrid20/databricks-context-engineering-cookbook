@@ -1,0 +1,42 @@
+bundle:
+  name: healthcare-patient-data-pipeline
+  
+variables:
+  catalog:
+    description: "Unity Catalog name"
+    
+  schema:
+    description: "Schema name within catalog"
+    default: "healthcare_data"
+    
+  environment:
+    description: "Environment identifier (dev/prod)"
+    
+  volumes_path:
+    description: "Path to Databricks Volumes for CSV ingestion"
+    
+  max_files_per_trigger:
+    description: "Auto Loader performance tuning"
+    default: 100
+
+include:
+  - resources/*.yml
+
+targets:
+  dev:
+    mode: development
+    variables:
+      catalog: "juan_dev"
+      schema: "healthcare_data"
+      environment: "dev"
+      volumes_path: "/Volumes/juan_dev/healthcare_data/raw_data"
+      max_files_per_trigger: 50
+      
+  prod:
+    mode: production
+    variables:
+      catalog: "juan_prod"
+      schema: "healthcare_data" 
+      environment: "prod"
+      volumes_path: "/Volumes/juan_prod/healthcare_data/raw_data"
+      max_files_per_trigger: 200

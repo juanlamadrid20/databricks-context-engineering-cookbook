@@ -1,0 +1,55 @@
+resources:
+  pipelines:
+    patient_data_pipeline:
+      name: "[${bundle.target}] Healthcare Patient Data Pipeline"
+      target: "${var.schema}"  # CRITICAL: Only schema when catalog is specified separately
+      catalog: "${var.catalog}"  # CRITICAL: Required for serverless compute
+      serverless: true  # MANDATORY: Must be true - NO cluster configurations allowed
+      
+      libraries:
+        # CRITICAL: Reference individual files, NOT directories
+        # Shared schemas
+        - file:
+            path: ../src/pipelines/shared/healthcare_schemas.py
+        # Bronze layer ingestion
+        - file:
+            path: ../src/pipelines/bronze/patient_demographics_ingestion.py
+        - file:
+            path: ../src/pipelines/bronze/insurance_claims_ingestion.py
+        - file:
+            path: ../src/pipelines/bronze/medical_events_ingestion.py
+        # Silver layer transformations
+        - file:
+            path: ../src/pipelines/silver/patient_demographics_transform.py
+        - file:
+            path: ../src/pipelines/silver/insurance_claims_transform.py
+        - file:
+            path: ../src/pipelines/silver/medical_events_transform.py
+        # Gold layer dimensions
+        - file:
+            path: ../src/pipelines/gold/patient_360_dimension.py
+        - file:
+            path: ../src/pipelines/gold/claims_fact_table.py
+        - file:
+            path: ../src/pipelines/gold/medical_events_fact_table.py
+            
+      configuration:
+        "bundle.sourcePath": "${workspace.file_path}/src"
+        "CATALOG": "${var.catalog}"
+        "SCHEMA": "${var.schema}"
+        "PIPELINE_ENV": "${var.environment}"
+        "VOLUMES_PATH": "${var.volumes_path}"
+        "MAX_FILES_PER_TRIGGER": "${var.max_files_per_trigger}"
+        # Healthcare compliance configurations (serverless handles compute automatically)
+        "spark.databricks.delta.properties.defaults.changeDataFeed.enabled": "true"
+        # Compliance and governance metadata (stored as configuration parameters)
+        "compliance": "HIPAA"
+        "data_classification": "PHI"
+        "environment": "${var.environment}"
+        # HIPAA audit and encryption settings
+        "spark.databricks.delta.properties.defaults.logRetentionDuration": "interval 365 days"
+        "spark.sql.adaptive.enabled": "true"
+        "spark.sql.adaptive.coalescePartitions.enabled": "true"
+        
+      # Continuous processing for healthcare workloads  
+      continuous: false
