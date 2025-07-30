@@ -1,7 +1,7 @@
 resources:
   jobs:
     synthetic_data_generation_job:
-      name: "healthcare-synthetic-data-generation-${var.environment}"
+      name: "[${bundle.target}] Healthcare Synthetic Data Generation"
       # ✅ CORRECT: NO cluster configuration = serverless by default
       
       tasks:
@@ -31,7 +31,7 @@ resources:
         compliance: "HIPAA"
     
     data_quality_monitoring_job:
-      name: "healthcare-data-quality-monitoring-${var.environment}"
+      name: "[${bundle.target}] Healthcare Data Quality Monitoring"
       # ✅ CORRECT: NO cluster configuration = serverless by default
       
       tasks:

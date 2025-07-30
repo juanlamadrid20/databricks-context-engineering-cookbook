@@ -1,7 +1,7 @@
 resources:
   pipelines:
     patient_data_pipeline:
-      name: "healthcare-patient-data-pipeline-${var.environment}"
+      name: "[${bundle.target}] Healthcare Patient Data Pipeline"
       target: "${var.schema}"  # CRITICAL: Only schema when catalog is specified separately
       catalog: "${var.catalog}"  # CRITICAL: Required for serverless compute
       serverless: true  # MANDATORY: Must be true - NO cluster configurations allowed
