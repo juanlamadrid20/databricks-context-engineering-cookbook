@@ -130,7 +130,7 @@ Health Insurance Domain: Patient Analytics (EXACTLY 3 ENTITIES)
 ### Data Warehouse Design Patterns
 
 #### Dimensional Modeling Strategy
-<TODO: Define your specific dimensional model approach>
+<Dimensional model approach>
 - **Star Schema**: Centralized fact tables with denormalized dimensions
 - **Slowly Changing Dimensions**: Type 1 (overwrite) and Type 2 (historical tracking)
 - **Fact Table Grain**: Define the lowest level of detail for each fact table
@@ -182,7 +182,7 @@ databricks-data-engineering-project/
 
 ### Prerequisites
 - **Databricks CLI configured** (required for Asset Bundle deployment)
-- **Python 3.8+** with databricks-sdk
+- **Python 3.12+** with databricks-sdk
 - **Access to Databricks workspace** with DLT capabilities and Unity Catalog
 - **Asset Bundle permissions** for target workspace and environments
 - **Databricks Volumes** access for CSV file ingestion
