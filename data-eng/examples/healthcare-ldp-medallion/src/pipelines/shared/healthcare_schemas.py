@@ -1,160 +1,187 @@
 """
-Healthcare Domain Schema Definitions
-Complete schema definitions for healthcare insurance patient data with HIPAA compliance.
-Implements exactly 3 entities: Patients, Claims, Medical_Events as required by domain model.
+Healthcare Data Schemas for HIPAA-Compliant Patient Data Processing
+Centralized schema definitions for bronze, silver, and gold layer transformations.
+Implements exact 3-entity healthcare domain model from INITIAL.md requirements.
 """
 
-from pyspark.sql.types import (
-    StructType, StructField, StringType, IntegerType, DoubleType, 
-    BooleanType, TimestampType, DateType
-)
+from pyspark.sql.types import StructType, StructField, StringType, IntegerType, DoubleType, BooleanType, TimestampType
 
-# COMPLETE PATIENT SCHEMA - MANDATORY FIELDS FROM INITIAL.MD
+# MANDATORY: EXACTLY 3 entities - NO additions or deviations allowed
+
+# Entity 1: Patients (PRIMARY ENTITY)
 PATIENT_SCHEMA = StructType([
     # Primary Key
-    StructField("patient_id", StringType(), False),      # PK - MANDATORY
+    StructField("patient_id", StringType(), False),           # PK - MANDATORY
     
-    # Demographics
-    StructField("first_name", StringType(), True),       # Demographics
-    StructField("last_name", StringType(), True),        # Demographics  
-    StructField("age", IntegerType(), True),             # Demographics (18-85)
-    StructField("sex", StringType(), True),              # Demographics (MALE/FEMALE)
-    StructField("region", StringType(), True),           # Location (NORTHEAST/NORTHWEST/SOUTHEAST/SOUTHWEST)
+    # Demographics (from INITIAL.md lines 220-240)
+    StructField("first_name", StringType(), True),
+    StructField("last_name", StringType(), True), 
+    StructField("age", IntegerType(), True),                  # 18-85 range (μ=45, σ=15)
+    StructField("sex", StringType(), True),                   # MALE/FEMALE only
+    StructField("region", StringType(), True),                # NORTHEAST/NORTHWEST/SOUTHEAST/SOUTHWEST
     
     # Health Metrics
-    StructField("bmi", DoubleType(), True),              # Health metric (16-50)
-    StructField("smoker", BooleanType(), True),          # Lifestyle factor
-    StructField("children", IntegerType(), True),        # Number of dependents
+    StructField("bmi", DoubleType(), True),                   # 16-50 range (μ=28, σ=6)
+    StructField("smoker", BooleanType(), True),               # Age-correlated probability
+    StructField("children", IntegerType(), True),             # Poisson λ=1.2
     
     # Financial Data
-    StructField("charges", DoubleType(), True),          # Calculated insurance premium
+    StructField("charges", DoubleType(), True),               # Calculated premium based on risk
     
-    # Insurance Details
-    StructField("insurance_plan", StringType(), True),   # Insurance details
-    StructField("coverage_start_date", StringType(), True), # Insurance details
-    
-    # HIPAA Sensitive Fields (for bronze layer only - will be hashed in silver)
-    StructField("ssn", StringType(), True),              # SSN - MUST be hashed in silver layer
-    StructField("date_of_birth", StringType(), True),    # DOB - for age calculation validation
-    StructField("zip_code", StringType(), True),         # Geographic data - last 2 digits only for elderly
+    # Insurance Details  
+    StructField("insurance_plan", StringType(), True),
+    StructField("coverage_start_date", StringType(), True),
     
     # Temporal Data
-    StructField("timestamp", StringType(), True),        # Record creation timestamp
-    
-    # Pipeline Metadata fields - Added during ingestion
-    StructField("_ingested_at", TimestampType(), True),  # Ingestion timestamp
-    StructField("_pipeline_env", StringType(), True),    # Environment (dev/prod)
-    StructField("_file_name", StringType(), True),       # Source file name
-    StructField("_file_path", StringType(), True),       # Source file path
-    StructField("_file_size", StringType(), True),       # Source file size
-    StructField("_file_modification_time", TimestampType(), True)  # File modification time
+    StructField("timestamp", StringType(), True),             # Record creation timestamp
 ])
 
-# CLAIMS SCHEMA - TRANSACTIONAL ENTITY
+# Entity 2: Claims (TRANSACTIONAL ENTITY)
 CLAIMS_SCHEMA = StructType([
-    # Primary Key and Foreign Key
-    StructField("claim_id", StringType(), False),        # PK - MANDATORY
-    StructField("patient_id", StringType(), False),     # FK to patients - MANDATORY
-    
-    # Financial Data
-    StructField("claim_amount", DoubleType(), True),    # Financial data
-    StructField("claim_date", StringType(), True),      # Temporal data
-    StructField("approval_date", StringType(), True),   # Processing date
-    StructField("payment_date", StringType(), True),    # Payment processing
-    
-    # Clinical Data
-    StructField("diagnosis_code", StringType(), True),  # ICD-10 code
-    StructField("procedure_code", StringType(), True),  # CPT code
-    StructField("diagnosis_description", StringType(), True),  # Clinical description
-    StructField("procedure_description", StringType(), True),  # Procedure description
-    
-    # Claim Processing
-    StructField("claim_status", StringType(), True),    # Status (submitted/approved/denied/paid)
-    StructField("claim_type", StringType(), True),      # Type (inpatient/outpatient/pharmacy/dental)
-    StructField("provider_id", StringType(), True),     # Healthcare provider identifier
-    StructField("provider_name", StringType(), True),   # Provider name
-    StructField("denial_reason", StringType(), True),   # Reason for denial if applicable
-    
-    # Pipeline Metadata fields
-    StructField("_ingested_at", TimestampType(), True),
-    StructField("_pipeline_env", StringType(), True),
-    StructField("_file_name", StringType(), True),
-    StructField("_file_path", StringType(), True),
-    StructField("_file_size", StringType(), True),
-    StructField("_file_modification_time", TimestampType(), True)
+    StructField("claim_id", StringType(), False),             # PK - MANDATORY
+    StructField("patient_id", StringType(), False),          # FK to patients - MANDATORY
+    StructField("claim_amount", DoubleType(), True),
+    StructField("claim_date", StringType(), True),  
+    StructField("diagnosis_code", StringType(), True),        # ICD-10
+    StructField("procedure_code", StringType(), True),        # CPT
+    StructField("claim_status", StringType(), True),          # submitted/approved/denied/paid
+    StructField("timestamp", StringType(), True),             # Record creation timestamp
 ])
 
-# MEDICAL_EVENTS SCHEMA - EVENT ENTITY
+# Entity 3: Medical_Events (EVENT ENTITY)  
 MEDICAL_EVENTS_SCHEMA = StructType([
-    # Primary Key and Foreign Key
-    StructField("event_id", StringType(), False),       # PK - MANDATORY
-    StructField("patient_id", StringType(), False),    # FK to patients - MANDATORY
+    StructField("event_id", StringType(), False),             # PK - MANDATORY
+    StructField("patient_id", StringType(), False),          # FK to patients - MANDATORY
+    StructField("event_date", StringType(), True),
+    StructField("event_type", StringType(), True),
+    StructField("medical_provider", StringType(), True),
+    StructField("timestamp", StringType(), True),             # Record creation timestamp
+])
+
+# Validation Constants
+VALID_REGIONS = ["NORTHEAST", "NORTHWEST", "SOUTHEAST", "SOUTHWEST"]
+VALID_SEX_VALUES = ["MALE", "FEMALE"]
+VALID_CLAIM_STATUSES = ["submitted", "approved", "denied", "paid"]
+VALID_EVENT_TYPES = ["checkup", "emergency", "surgery", "consultation", "diagnostic", "treatment"]
+
+# Bronze Layer Schema Enhancements (with metadata)
+BRONZE_PATIENT_SCHEMA = StructType([
+    # Core patient fields
+    StructField("patient_id", StringType(), False),
+    StructField("first_name", StringType(), True),
+    StructField("last_name", StringType(), True), 
+    StructField("age", IntegerType(), True),
+    StructField("sex", StringType(), True),
+    StructField("region", StringType(), True),
+    StructField("bmi", DoubleType(), True),
+    StructField("smoker", BooleanType(), True),
+    StructField("children", IntegerType(), True),
+    StructField("charges", DoubleType(), True),
+    StructField("insurance_plan", StringType(), True),
+    StructField("coverage_start_date", StringType(), True),
+    StructField("timestamp", StringType(), True),
     
-    # Event Data
-    StructField("event_date", StringType(), True),     # Temporal data
-    StructField("event_type", StringType(), True),     # Event category (office_visit/procedure/lab_test/imaging/emergency)
-    StructField("event_description", StringType(), True), # Clinical description
-    
-    # Provider Information
-    StructField("medical_provider", StringType(), True), # Provider info
-    StructField("provider_type", StringType(), True),   # Provider specialty
-    StructField("facility_name", StringType(), True),   # Healthcare facility
-    StructField("facility_type", StringType(), True),   # Facility type (hospital/clinic/lab/imaging)
-    
-    # Clinical Details
-    StructField("primary_diagnosis", StringType(), True), # Primary diagnosis code
-    StructField("secondary_diagnosis", StringType(), True), # Secondary diagnosis
-    StructField("vital_signs", StringType(), True),     # Vital signs (JSON string)
-    StructField("medications_prescribed", StringType(), True), # Medications (JSON array)
-    
-    # Outcome Data
-    StructField("visit_duration_minutes", IntegerType(), True), # Visit length
-    StructField("follow_up_required", BooleanType(), True),     # Follow-up flag
-    StructField("emergency_flag", BooleanType(), True),         # Emergency indicator
-    StructField("admission_flag", BooleanType(), True),         # Hospital admission
-    
-    # Pipeline Metadata fields
+    # Pipeline metadata fields
     StructField("_ingested_at", TimestampType(), True),
     StructField("_pipeline_env", StringType(), True),
     StructField("_file_name", StringType(), True),
     StructField("_file_path", StringType(), True),
     StructField("_file_size", StringType(), True),
-    StructField("_file_modification_time", TimestampType(), True)
+    StructField("_file_modification_time", StringType(), True),
 ])
 
-# HIPAA COMPLIANCE METADATA SCHEMA - For audit trails
-HIPAA_AUDIT_SCHEMA = StructType([
-    StructField("audit_id", StringType(), False),
-    StructField("table_name", StringType(), False),
-    StructField("operation_type", StringType(), False),  # INSERT/UPDATE/DELETE
-    StructField("user_id", StringType(), True),
-    StructField("session_id", StringType(), True),
-    StructField("timestamp", TimestampType(), False),
-    StructField("data_classification", StringType(), True),  # PHI/PII/PUBLIC
-    StructField("encryption_key_id", StringType(), True),
-    StructField("retention_policy", StringType(), True)
+BRONZE_CLAIMS_SCHEMA = StructType([
+    # Core claims fields
+    StructField("claim_id", StringType(), False),
+    StructField("patient_id", StringType(), False),
+    StructField("claim_amount", DoubleType(), True),
+    StructField("claim_date", StringType(), True),
+    StructField("diagnosis_code", StringType(), True),
+    StructField("procedure_code", StringType(), True),
+    StructField("claim_status", StringType(), True),
+    StructField("timestamp", StringType(), True),
+    
+    # Pipeline metadata fields
+    StructField("_ingested_at", TimestampType(), True),
+    StructField("_pipeline_env", StringType(), True),
+    StructField("_file_name", StringType(), True),
+    StructField("_file_path", StringType(), True),
+    StructField("_file_size", StringType(), True),
+    StructField("_file_modification_time", StringType(), True),
 ])
 
-# CLINICAL VALIDATION REFERENCE DATA
-VALID_REGIONS = ["NORTHEAST", "NORTHWEST", "SOUTHEAST", "SOUTHWEST"]
-VALID_SEX_VALUES = ["MALE", "FEMALE", "OTHER", "UNKNOWN"]
-VALID_CLAIM_STATUSES = ["SUBMITTED", "APPROVED", "DENIED", "PAID", "PENDING", "CANCELLED"]
-VALID_CLAIM_TYPES = ["INPATIENT", "OUTPATIENT", "PHARMACY", "DENTAL", "VISION", "MENTAL_HEALTH"]
-VALID_EVENT_TYPES = ["OFFICE_VISIT", "PROCEDURE", "LAB_TEST", "IMAGING", "EMERGENCY", "SURGERY", "CONSULTATION"]
-VALID_FACILITY_TYPES = ["HOSPITAL", "CLINIC", "LABORATORY", "IMAGING_CENTER", "PHARMACY", "URGENT_CARE"]
+BRONZE_MEDICAL_EVENTS_SCHEMA = StructType([
+    # Core medical events fields
+    StructField("event_id", StringType(), False),
+    StructField("patient_id", StringType(), False),
+    StructField("event_date", StringType(), True),
+    StructField("event_type", StringType(), True),
+    StructField("medical_provider", StringType(), True),
+    StructField("timestamp", StringType(), True),
+    
+    # Pipeline metadata fields
+    StructField("_ingested_at", TimestampType(), True),
+    StructField("_pipeline_env", StringType(), True),
+    StructField("_file_name", StringType(), True),
+    StructField("_file_path", StringType(), True),
+    StructField("_file_size", StringType(), True),
+    StructField("_file_modification_time", StringType(), True),
+])
 
-# AGE RANGES AND BMI LIMITS FOR VALIDATION
-MIN_PATIENT_AGE = 18
-MAX_PATIENT_AGE = 85
-MIN_BMI = 16.0
-MAX_BMI = 50.0
-MAX_CHILDREN = 10
+# Data Quality Expectations Dictionary
+PATIENT_DATA_QUALITY_EXPECTATIONS = {
+    # Primary Key Validation
+    "valid_patient_id": "patient_id IS NOT NULL AND LENGTH(patient_id) >= 5",
+    
+    # Demographics Validation
+    "valid_age": "age IS NOT NULL AND age BETWEEN 18 AND 85",
+    "valid_sex": "sex IS NOT NULL AND sex IN ('MALE', 'FEMALE')",
+    "valid_region": "region IS NOT NULL AND region IN ('NORTHEAST', 'NORTHWEST', 'SOUTHEAST', 'SOUTHWEST')",
+    
+    # Health Metrics Validation
+    "valid_bmi": "bmi IS NOT NULL AND bmi BETWEEN 16 AND 50",
+    "valid_smoker": "smoker IS NOT NULL",
+    "valid_children": "children IS NOT NULL AND children >= 0",
+    
+    # Financial Data Validation
+    "valid_charges": "charges IS NOT NULL AND charges > 0"
+}
 
-# HIPAA COMPLIANCE SETTINGS
-PATIENT_SALT = "PATIENT_DATA_ENCRYPTION_SALT_2024"  # For SSN hashing
-ELDERLY_AGE_THRESHOLD = 89  # Ages 89+ become 90 for de-identification
-ZIP_CODE_ANONYMIZATION_THRESHOLD = 89  # Last 2 digits only for elderly patients
+PATIENT_MONITORING_EXPECTATIONS = {
+    # Name Completeness
+    "complete_name": "first_name IS NOT NULL AND last_name IS NOT NULL",
+    
+    # Insurance Details
+    "valid_coverage_date": "coverage_start_date IS NOT NULL",
+    "valid_insurance_plan": "insurance_plan IS NOT NULL",
+    
+    # Temporal Data
+    "valid_timestamp": "timestamp IS NOT NULL",
+    
+    # Reasonable Range Checks
+    "reasonable_age": "age BETWEEN 18 AND 80",  # Most common range
+    "reasonable_bmi": "bmi BETWEEN 18 AND 40",  # Most common range
+    "reasonable_children": "children <= 10"     # Reasonable upper bound
+}
 
-# DATA QUALITY THRESHOLDS
-TARGET_DATA_QUALITY_SCORE = 99.5  # 99.5% target across all layers
-HIPAA_AUDIT_RETENTION_DAYS = 2555  # 7 years in days
+CLAIMS_DATA_QUALITY_EXPECTATIONS = {
+    "valid_claim_id": "claim_id IS NOT NULL AND LENGTH(claim_id) >= 5",
+    "valid_patient_reference": "patient_id IS NOT NULL AND LENGTH(patient_id) >= 5",
+    "valid_claim_amount": "claim_amount IS NOT NULL AND claim_amount > 0",
+    "valid_claim_date": "claim_date IS NOT NULL",
+    "valid_claim_status": "claim_status IS NOT NULL AND claim_status IN ('submitted', 'approved', 'denied', 'paid')"
+}
+
+MEDICAL_EVENTS_DATA_QUALITY_EXPECTATIONS = {
+    "valid_event_id": "event_id IS NOT NULL AND LENGTH(event_id) >= 5",
+    "valid_patient_reference": "patient_id IS NOT NULL AND LENGTH(patient_id) >= 5",
+    "valid_event_date": "event_date IS NOT NULL",
+    "valid_event_type": "event_type IS NOT NULL",
+    "valid_medical_provider": "medical_provider IS NOT NULL"
+}
+
+# HIPAA Compliance Constants
+HIPAA_AGE_THRESHOLD = 89  # Ages 89+ become 90 for de-identification
+PATIENT_SALT = "HEALTHCARE_PATIENT_PII_SALT_2024"  # Salt for PII hashing
+
+print("✅ Healthcare schemas loaded successfully - 3 entities with HIPAA compliance patterns")

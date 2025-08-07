@@ -7,14 +7,14 @@ Implements HIPAA-compliant data ingestion with comprehensive audit trails.
 import dlt
 import sys
 import os
-from pyspark.sql.functions import current_timestamp, col, lit, count, countDistinct, avg, min as spark_min, max as spark_max, sum as spark_sum
+from pyspark.sql.functions import current_timestamp, col, lit
 from pyspark.sql.types import StructType, StructField, StringType, TimestampType
 
 # Environment-aware configuration with Unity Catalog
 CATALOG = spark.conf.get("CATALOG", "juan_dev")
-SCHEMA = spark.conf.get("SCHEMA", "data_eng")
+SCHEMA = spark.conf.get("SCHEMA", "healthcare_data")
 PIPELINE_ENV = spark.conf.get("PIPELINE_ENV", "dev")
-VOLUMES_PATH = spark.conf.get("VOLUMES_PATH", "/Volumes/juan_dev/data_eng/raw_data")
+VOLUMES_PATH = spark.conf.get("VOLUMES_PATH", "/Volumes/juan_dev/healthcare_data/raw_data")
 MAX_FILES_PER_TRIGGER = spark.conf.get("MAX_FILES_PER_TRIGGER", "100")
 
 # Critical path handling pattern (include in all pipeline files)
@@ -32,119 +32,114 @@ except:
 
 # Import healthcare schemas
 try:
-    from pipelines.shared.healthcare_schemas import PATIENT_SCHEMA, VALID_REGIONS, VALID_SEX_VALUES
+    from pipelines.shared.healthcare_schemas import (
+        PATIENT_SCHEMA,
+        BRONZE_PATIENT_SCHEMA, 
+        PATIENT_DATA_QUALITY_EXPECTATIONS,
+        VALID_REGIONS, 
+        VALID_SEX_VALUES
+    )
 except ImportError:
-    # Fallback schema definition if import fails
     print("⚠️  Warning: Could not import healthcare schemas, using fallback schema")
+    # Fallback schema definition if import fails
+    from pyspark.sql.types import StructType, StructField, StringType, IntegerType, DoubleType, BooleanType, TimestampType
+    
+    # Input schema for CSV files (without metadata fields)
     PATIENT_SCHEMA = StructType([
         StructField("patient_id", StringType(), False),
         StructField("first_name", StringType(), True),
         StructField("last_name", StringType(), True),
-        StructField("age", StringType(), True),
+        StructField("age", IntegerType(), True),
         StructField("sex", StringType(), True),
         StructField("region", StringType(), True),
-        StructField("bmi", StringType(), True),
-        StructField("smoker", StringType(), True),
-        StructField("children", StringType(), True),
-        StructField("charges", StringType(), True),
+        StructField("bmi", DoubleType(), True),
+        StructField("smoker", BooleanType(), True),
+        StructField("children", IntegerType(), True),
+        StructField("charges", DoubleType(), True),
         StructField("insurance_plan", StringType(), True),
         StructField("coverage_start_date", StringType(), True),
-        StructField("ssn", StringType(), True),
-        StructField("date_of_birth", StringType(), True),
-        StructField("zip_code", StringType(), True),
-        StructField("timestamp", StringType(), True)
+        StructField("timestamp", StringType(), True),
     ])
+    
+    BRONZE_PATIENT_SCHEMA = StructType([
+        StructField("patient_id", StringType(), False),
+        StructField("first_name", StringType(), True),
+        StructField("last_name", StringType(), True),
+        StructField("age", IntegerType(), True),
+        StructField("sex", StringType(), True),
+        StructField("region", StringType(), True),
+        StructField("bmi", DoubleType(), True),
+        StructField("smoker", BooleanType(), True),
+        StructField("children", IntegerType(), True),
+        StructField("charges", DoubleType(), True),
+        StructField("insurance_plan", StringType(), True),
+        StructField("coverage_start_date", StringType(), True),
+        StructField("timestamp", StringType(), True),
+        StructField("_ingested_at", TimestampType(), True),
+        StructField("_pipeline_env", StringType(), True),
+        StructField("_file_name", StringType(), True),
+        StructField("_file_path", StringType(), True),
+        StructField("_file_size", StringType(), True),
+        StructField("_file_modification_time", StringType(), True),
+    ])
+    
+    PATIENT_DATA_QUALITY_EXPECTATIONS = {
+        "valid_patient_id": "patient_id IS NOT NULL AND LENGTH(patient_id) >= 5",
+        "valid_age": "age IS NOT NULL AND age BETWEEN 18 AND 85",
+        "valid_sex": "sex IS NOT NULL AND sex IN ('MALE', 'FEMALE')",
+        "valid_region": "region IS NOT NULL AND region IN ('NORTHEAST', 'NORTHWEST', 'SOUTHEAST', 'SOUTHWEST')",
+        "valid_bmi": "bmi IS NOT NULL AND bmi BETWEEN 16 AND 50",
+        "valid_charges": "charges IS NOT NULL AND charges > 0"
+    }
 
 @dlt.table(
-    name="bronze_patients",  # CORRECT: Simple table name - catalog/schema specified at pipeline level
-    comment="Raw patient demographic data ingestion with HIPAA compliance and comprehensive audit trails",
+    name="bronze_patients",
+    comment="Raw patient demographics data with HIPAA compliance and audit logging",
     table_properties={
         "quality": "bronze",
         "pipelines.autoOptimize.managed": "true",
-        "delta.feature.allowColumnDefaults": "supported",
         "delta.enableChangeDataFeed": "true",  # HIPAA audit requirement
-        "pipelines.pii.fields": "ssn,date_of_birth,first_name,last_name,zip_code",  # Mark PII fields
-        "compliance": "HIPAA",
-        "data_classification": "PHI",
-        "environment": PIPELINE_ENV
+        "pipelines.pii.fields": "first_name,last_name",
+        "data_classification": "PHI"
     }
 )
-@dlt.expect_all_or_drop({
-    "valid_patient_id": "patient_id IS NOT NULL AND LENGTH(patient_id) >= 5",
-    "non_null_demographics": "first_name IS NOT NULL AND last_name IS NOT NULL",
-    "valid_age_format": "age IS NOT NULL",
-    "valid_sex_format": "sex IS NOT NULL",
-    "non_empty_ssn": "ssn IS NOT NULL AND LENGTH(ssn) >= 9"  # Basic SSN presence check
-})
+@dlt.expect_all_or_drop(PATIENT_DATA_QUALITY_EXPECTATIONS)
 @dlt.expect_all({
-    "reasonable_age_range": "CAST(age AS INT) BETWEEN 0 AND 120",  # Allow broader range for bronze
-    "valid_timestamp": "timestamp IS NOT NULL",
-    "valid_bmi_format": "bmi IS NOT NULL",
-    "valid_charges_format": "charges IS NOT NULL"
+    "complete_name": "first_name IS NOT NULL AND last_name IS NOT NULL",
+    "valid_coverage_date": "coverage_start_date IS NOT NULL",
+    "valid_insurance_plan": "insurance_plan IS NOT NULL",
+    "reasonable_age": "age BETWEEN 18 AND 80",
+    "reasonable_bmi": "bmi BETWEEN 18 AND 40"
 })
 def bronze_patients():
     """
-    Ingest raw patient demographic data using Auto Loader with schema enforcement.
-    
-    CRITICAL PATTERNS:
-    - Uses .format("cloudFiles") for Auto Loader (MANDATORY)
-    - Uses @dlt.table for persistence and checkpointing (NOT @dlt.view)
-    - Includes file metadata using _metadata column pattern
-    - Implements HIPAA audit fields for compliance
+    CRITICAL: Uses Auto Loader with .format("cloudFiles") pattern required for DLT.
+    Ingests patient CSV files from Databricks Volumes with schema enforcement.
     """
-    
     return (
-        spark.readStream.format("cloudFiles")  # ← CRITICAL: Must include .format("cloudFiles")
+        spark.readStream
+        .format("cloudFiles")  # CRITICAL: Required for DLT Autoloader
         .option("cloudFiles.format", "csv")
-        .option("header", "true")
+        .option("header", "true") 
         .option("cloudFiles.schemaLocation", f"{VOLUMES_PATH}/_checkpoints/bronze_patients")
+        # .option("cloudFiles.schemaEvolution", "true")
         .option("cloudFiles.inferColumnTypes", "false")  # Use explicit schema
-        .option("cloudFiles.schemaEvolutionMode", "rescue")  # Handle schema changes
-        .option("cloudFiles.maxFilesPerTrigger", MAX_FILES_PER_TRIGGER)
-        .schema(PATIENT_SCHEMA)  # Enforce healthcare schema
-        .load(f"{VOLUMES_PATH}/patients*.csv")  # Patient files pattern
-        .select("*", "_metadata")  # REQUIRED: Explicitly select metadata
-        # Add file metadata columns using _metadata pattern (NOT deprecated input_file_name())
-        .withColumn("_ingested_at", current_timestamp())
-        .withColumn("_pipeline_env", lit(PIPELINE_ENV))
+        .option("maxFilesPerTrigger", MAX_FILES_PER_TRIGGER)
+        .schema(PATIENT_SCHEMA)
+        .load(f"{VOLUMES_PATH}")
+        .filter(col("patient_id").isNotNull())  # Basic non-null filter
+        
+        # Add file metadata using _metadata column (not deprecated input_file_name)
+        .select("*", "_metadata")
         .withColumn("_file_name", col("_metadata.file_name"))
         .withColumn("_file_path", col("_metadata.file_path"))
-        .withColumn("_file_size", col("_metadata.file_size"))
-        .withColumn("_file_modification_time", col("_metadata.file_modification_time"))
-        .drop("_metadata")  # Clean up temporary column
-        # Add HIPAA compliance metadata
-        .withColumn("_data_classification", lit("PHI"))
-        .withColumn("_compliance_framework", lit("HIPAA"))
-        .withColumn("_audit_required", lit(True))
+        .withColumn("_file_size", col("_metadata.file_size").cast("string"))
+        .withColumn("_file_modification_time", col("_metadata.file_modification_time").cast("string"))
+        .drop("_metadata")  # Clean up metadata column
+        
+        # Add pipeline metadata
+        .withColumn("_ingested_at", current_timestamp())
+        .withColumn("_pipeline_env", lit(PIPELINE_ENV))
     )
 
-# Data Quality Monitoring for Bronze Layer
-@dlt.table(
-    name="bronze_patients_quality_metrics",
-    comment="Data quality metrics and monitoring for patient demographics ingestion"
-)
-def bronze_patients_quality_metrics():
-    """
-    Generate data quality metrics for bronze patient data.
-    Tracks ingestion rates, file processing, and basic validation metrics.
-    """
-    
-    return (
-        dlt.read("bronze_patients")  # CORRECT: Simple table name - catalog/schema specified at pipeline level
-        .groupBy("_pipeline_env", "_file_name") 
-        .agg(
-            count("*").alias("total_records"),
-            count("patient_id").alias("valid_patient_ids"),
-            count("ssn").alias("records_with_ssn"),
-            countDistinct("patient_id").alias("unique_patients"),
-            spark_min("_ingested_at").alias("batch_start"),
-            spark_max("_ingested_at").alias("batch_end"),
-            avg(col("age").cast("int")).alias("avg_age"),
-            spark_sum(col("charges").cast("double")).alias("total_charges")
-        )
-        .withColumn("data_quality_score", 
-                   (col("valid_patient_ids") / col("total_records") * 100))
-        .withColumn("uniqueness_score",
-                   (col("unique_patients") / col("total_records") * 100))
-        .withColumn("processed_at", current_timestamp())
-    )
+print("✅ Bronze patient demographics ingestion pipeline loaded successfully")
