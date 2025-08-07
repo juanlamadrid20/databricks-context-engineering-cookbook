@@ -24,7 +24,7 @@ print(f"   Environment: {environment}")
 
 # COMMAND ----------
 
-from pyspark.sql.functions import count, sum as spark_sum, when, lit, current_timestamp
+from pyspark.sql.functions import count, sum as spark_sum, when, lit, current_timestamp, col
 
 compliance_results = []
 

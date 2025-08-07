@@ -24,7 +24,7 @@ print(f"   Environment: {environment}")
 
 # COMMAND ----------
 
-from pyspark.sql.functions import count, sum as spark_sum, avg, when, lit, current_timestamp
+from pyspark.sql.functions import count, sum as spark_sum, avg, when, lit, current_timestamp, col
 
 # Bronze layer quality metrics
 print("🧠 Collecting Bronze Layer Quality Metrics...")
