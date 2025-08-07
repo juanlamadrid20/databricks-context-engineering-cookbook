@@ -1,0 +1,14 @@
+# The main pipeline for dabs_prp_general
+resources:
+  pipelines:
+    dabs_prp_general_pipeline:
+      name: dabs_prp_general_pipeline
+      catalog: ah_demos
+      schema: dabs_prp_general_${bundle.target}
+      serverless: true
+      libraries:
+        - notebook:
+            path: ../src/dlt_pipeline.ipynb
+
+      configuration:
+        bundle.sourcePath: ${workspace.file_path}/src
