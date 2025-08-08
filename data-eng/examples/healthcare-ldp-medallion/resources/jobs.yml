@@ -1,7 +1,7 @@
 resources:
   jobs:
     synthetic_data_generation:
-      name: "synthetic_data_generation_${var.environment}"
+      name: "healthcare-de-synthetic-data-generation - [${bundle.target}]"
       
       tasks:
         - task_key: "generate_healthcare_data"
@@ -14,7 +14,7 @@ resources:
               environment: "${var.environment}"
               
     data_quality_monitoring:
-      name: "data_quality_monitoring_${var.environment}"
+      name: "healthcare-de-data-quality-monitoring - [${bundle.target}]"
       
       tasks:
         - task_key: "monitor_data_quality"
@@ -26,7 +26,7 @@ resources:
               environment: "${var.environment}"
               
     hipaa_compliance_monitoring:
-      name: "hipaa_compliance_monitoring_${var.environment}"
+      name: "healthcare-de-hipaa-compliance-monitoring - [${bundle.target}]"
       
       tasks:
         - task_key: "validate_hipaa_compliance"

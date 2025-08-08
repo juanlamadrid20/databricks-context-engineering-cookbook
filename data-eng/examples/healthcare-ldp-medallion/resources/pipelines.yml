@@ -1,7 +1,7 @@
 resources:
   pipelines:
     healthcare_patient_data_pipeline:
-      name: "healthcare-patient-data-pipeline-${var.environment}"
+      name: "healthcare-de-patient-data-pipeline - [${bundle.target}]"
       target: "${var.schema}"
       catalog: "${var.catalog}"
       serverless: true
