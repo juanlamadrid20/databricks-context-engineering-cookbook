@@ -7,6 +7,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 This is a Databricks data engineering project template implementing a medallion architecture (Bronze → Silver → Gold) using 
 Decalarative Pipelines (Delta Live Tables (DLT)) and Databricks Asset Bundles for deployment management.
 
+## Core Principles
+1. **Context is King**: Include ALL necessary documentation, examples, and caveats
+2. **Validation Loops**: Provide executable tests/lints the AI can run and fix
+3. **Information Dense**: Use keywords and patterns from the Databricks ecosystem
+4. **Progressive Success**: Start simple, validate, then enhance
+5. **Global rules**: Be sure to follow all rules in CLAUDE.md
+6. **Asset Bundle First**: All infrastructure should be managed through Databricks Asset Bundles
+
+
 ## Consolidated Documentation References
 
 ### External Documentation Hub
