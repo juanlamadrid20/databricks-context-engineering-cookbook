@@ -4,8 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a Databricks data engineering project template implementing a medallion architecture (Bronze → Silver → Gold) using 
-Decalarative Pipelines (Delta Live Tables (DLT)) and Databricks Asset Bundles for deployment management.
+This is a Databricks data engineering project template implementing a medallion architecture (Bronze → Silver → Gold) using Declarative Pipelines (Delta Live Tables/DLT) and Databricks Asset Bundles for deployment management.
 
 ## Core Principles
 1. **Context is King**: Include ALL necessary documentation, examples, and caveats
@@ -67,31 +66,17 @@ platform_docs:
 
 ## Key Commands
 
-### Databricks Asset Bundle Operations
 ```bash
-# Initialize Asset Bundle structure (if starting fresh)
-databricks bundle init
+# Asset Bundle Operations
+databricks bundle init                    # Initialize bundle structure
+databricks bundle validate               # Validate configuration
+databricks bundle deploy --target dev    # Deploy to development
+databricks bundle deploy --target prod   # Deploy to production
 
-# Validate bundle configuration
-databricks bundle validate
-
-# Deploy to development environment
-databricks bundle deploy --target dev
-
-# Deploy to production environment
-databricks bundle deploy --target prod
-```
-
-### Pipeline Development Workflow
-```bash
-# Validate Python syntax
-python -m py_compile src/pipelines/**/*.py
-
-# Run unit tests (when test files exist)
-python -m pytest tests/ -v
-
-# Deploy and test pipeline
-databricks bundle deploy --target dev
+# Pipeline Development Workflow
+python -m py_compile src/pipelines/**/*.py    # Validate Python syntax
+python -m pytest tests/ -v                   # Run unit tests
+databricks bundle deploy --target dev         # Deploy and test
 databricks jobs run-now --job-id <pipeline_name>
 ```
 
@@ -118,20 +103,6 @@ databricks jobs run-now --job-id <pipeline_name>
 
 ### Asset Bundle Management - Single Source of Truth
 
-#### Asset Bundle Workflow Commands
-```bash
-# Initialize bundle (if starting fresh)
-databricks bundle init
-
-# Validate bundle configuration
-databricks bundle validate
-
-# Deploy to development environment
-databricks bundle deploy --target dev
-
-# Deploy to production environment
-databricks bundle deploy --target prod
-```
 
 #### Comprehensive Root `databricks.yml` Template
 ```yaml
@@ -219,7 +190,7 @@ resources:
         "VOLUMES_PATH": "${var.volumes_path}"
         "MAX_FILES_PER_TRIGGER": "${var.max_files_per_trigger}"
         # Healthcare compliance configurations (serverless handles compute automatically)
-        # "spark.databricks.delta.properties.defaults.encryption.enabled": "true" # TODO: Claud.md review
+        # "spark.databricks.delta.properties.defaults.encryption.enabled": "true"
         "spark.databricks.delta.properties.defaults.changeDataFeed.enabled": "true"
         # Compliance and governance metadata (stored as configuration parameters)
         "compliance": "HIPAA"
@@ -287,36 +258,6 @@ resources:
           job_cluster_key: "cluster_key"      # FORBIDDEN
 ```
 
-#### Asset Bundle Variable Management Pattern
-```yaml
-variables:
-  catalog:
-    description: "Unity Catalog name"
-    default: "juan_dev"
-  schema:
-    description: "Schema name for data"
-    default: "data_eng"
-  volumes_path:
-    description: "Path to Databricks Volumes for CSV files"
-    default: "/Volumes/juan_dev/data_eng/raw_data"
-  max_files_per_trigger:
-    description: "Auto Loader performance tuning parameter"
-    default: 100
-
-targets:
-  dev:
-    variables:
-      catalog: "juan_dev"
-      schema: "data_eng"
-      volumes_path: "/Volumes/juan_dev/data_eng/raw_data"
-      max_files_per_trigger: 50
-  prod:
-    variables:
-      catalog: "juan_prod"
-      schema: "data_eng"
-      volumes_path: "/Volumes/juan_prod/data_eng/raw_data"
-      max_files_per_trigger: 200
-```
 
 #### Pipeline Configuration Pattern
 ```python
@@ -373,10 +314,7 @@ def bronze_table_raw():
     )
 ```
 
-**Why this matters:**
-- DLT requires explicit `.format("cloudFiles")` to recognize and optimize Autoloader functionality
-- Missing this pattern causes pipeline failures and performance issues
-- Simply having `"cloudFiles.format"` option is **not sufficient** - you need both
+**Why this matters**: DLT requires explicit `.format("cloudFiles")` to recognize and optimize Autoloader functionality. Missing this pattern causes pipeline failures and performance issues. Simply having `"cloudFiles.format"` option is not sufficient - you need both.
 
 #### Complete DLT Pipeline Template
 ```python
@@ -553,7 +491,7 @@ Reference: [Databricks File Metadata Column Documentation](https://docs.databric
 ### Data Quality Expectations & Monitoring
 Always implement comprehensive data quality using DLT decorators:
 
-- **IMPORTANT**: Aggregate checks must **NOT** be used inside expectations. Expectations must be row-level Boolean expressions only.
+**IMPORTANT**: Aggregate checks must NOT be used inside expectations. Expectations must be row-level Boolean expressions only.
 
 #### Core Expectation Types
 - `@dlt.expect_all_or_drop()` - Drop rows that fail expectations (use for critical data quality)
@@ -562,7 +500,7 @@ Always implement comprehensive data quality using DLT decorators:
 - `@dlt.expect_or_fail()` - Fail entire pipeline on violations (use for schema validation)
 
 #### Advanced Quality Patterns
-Note: Do not use aggregate expressions like COUNT(), SUM(), or AVG() inside @dlt.expect_* decorators. Use a separate metrics table for aggregate validations.
+**Note**: Do not use aggregate expressions like COUNT(), SUM(), or AVG() inside @dlt.expect_* decorators. Use a separate metrics table for aggregate validations.
 ```python
 # Multi-level data quality with custom metrics
 @dlt.table(name="silver_customers")
@@ -594,42 +532,41 @@ def gold_daily_summary():
 
 ### Mandatory Practices
 
-#### Compute Requirements (🚨 SERVERLESS ONLY - NO EXCEPTIONS)
-1. **Serverless by Omission**: ALL jobs use serverless compute by NOT specifying any cluster configurations
-2. **Forbidden Cluster Sections**: NEVER create `job_clusters:`, `new_cluster:`, `existing_cluster_id:` in job definitions
-3. **DLT Serverless**: Pipelines must specify `serverless: true` with NO `clusters:` section
-4. **No Task-Level Clusters**: Tasks must NOT include `job_cluster_key:`, `existing_cluster_id:`, or `new_cluster:` fields
-5. **Forbidden Cluster Fields**: NEVER use `node_type_id`, `num_workers`, `spark_version`, `driver_node_type_id` anywhere
+#### 🚨 SERVERLESS COMPUTE ONLY (NO EXCEPTIONS)
+1. **Serverless by Omission**: ALL jobs use serverless compute by NOT specifying cluster configurations
+2. **Forbidden Sections**: NEVER create `job_clusters:`, `new_cluster:`, `existing_cluster_id:`, `clusters:`
+3. **DLT Serverless**: Pipelines must specify `serverless: true` with NO cluster configurations
+4. **No Task-Level Clusters**: Tasks must NOT include cluster references
+5. **Forbidden Fields**: NEVER use `node_type_id`, `num_workers`, `spark_version`, `driver_node_type_id`
 
 #### Asset Bundle Requirements
-5. **Asset Bundle First**: Never deploy manually - always use `databricks bundle deploy`
-6. **Environment Isolation**: Use Asset Bundle targets for dev/staging/prod separation  
-7. **Version Control**: All databricks.yml configurations must be version controlled
-8. **Configuration via Variables**: Use Asset Bundle variables and `spark.conf.get()` pattern
-9. **Include Pattern**: Use `include: - resources/*.yml` for resource organization
-10. **Variable Defaults**: Always provide sensible defaults for Asset Bundle variables
+6. **Asset Bundle First**: Always use `databricks bundle deploy` - never deploy manually
+7. **Environment Isolation**: Use Asset Bundle targets for dev/staging/prod separation
+8. **Version Control**: All databricks.yml configurations must be version controlled
+9. **Configuration via Variables**: Use Asset Bundle variables with `spark.conf.get()` pattern
+10. **Include Pattern**: Use `include: - resources/*.yml` for resource organization
+11. **Variable Defaults**: Always provide sensible defaults for Asset Bundle variables
 
-#### Pipeline Development Standards  
-11. **DLT Table Names**: Use simple table names in `@dlt.table(name="table_name")` decorators - NO full namespace format
-12. **DLT Table References**: Use simple table names in `dlt.read("table_name")` calls - NO full namespace format
-13. **Unity Catalog**: Catalog and schema are specified at pipeline level in Asset Bundle configuration
-13. **Configuration Variables**: Use `spark.conf.get("CATALOG", "default")` with Asset Bundle variables
-14. **DLT Dependencies**: Use `dlt.read()` and `dlt.read_stream()` for table dependencies, never `spark.read()`
-15. **Data Quality**: Include multi-level `@dlt.expect_*` decorators on all tables
-16. **Schema Enforcement**: Define explicit schemas for bronze layer ingestion
-17. **Path Handling**: Include comprehensive path resolution in pipeline files
-18. **PII Handling**: Mark PII fields in table properties for governance compliance
-19. **Change Data Capture**: Enable CDC on gold tables with `delta.enableChangeDataFeed`
+#### Pipeline Development Standards
+12. **DLT Table Names**: Use simple table names in `@dlt.table(name="table_name")` - NO full namespace
+13. **DLT Table References**: Use simple table names in `dlt.read("table_name")` - NO full namespace
+14. **Unity Catalog**: Catalog and schema specified at pipeline level in Asset Bundle
+15. **Configuration Variables**: Use `spark.conf.get("CATALOG", "default")` with Asset Bundle variables
+16. **DLT Dependencies**: Use `dlt.read()` and `dlt.read_stream()` for dependencies, never `spark.read()`
+17. **Data Quality**: Include multi-level `@dlt.expect_*` decorators on all tables
+18. **Schema Enforcement**: Define explicit schemas for bronze layer ingestion
+19. **Path Handling**: Include comprehensive path resolution in pipeline files
+20. **PII Handling**: Mark PII fields in table properties for governance compliance
+21. **Change Data Capture**: Enable CDC on gold tables with `delta.enableChangeDataFeed`
 
-### 🚨 DLT Streaming Ingestion Best Practice
+### 🚨 Critical DLT Best Practices
 
-**Always use `@dlt.table` (not `@dlt.view`) for raw ingestion from Autoloader (`spark.readStream` / `cloudFiles`).**
+1. **Streaming Ingestion**: Always use `@dlt.table` (not `@dlt.view`) for raw ingestion from Autoloader
+   - `@dlt.table` ensures streaming tables are persisted, checkpointed, and visible to downstream pipelines
+   - `@dlt.view` creates non-materialized logic that may cause "Dataset not defined" errors
 
-- `@dlt.table` ensures streaming tables are **persisted**, **checkpointed**, and **visible** to downstream DLT pipelines.
-- `@dlt.view` creates **non-materialized logic**, which:
-  - Is **not checkpointed or persisted**,
-  - May **not register** in Unity Catalog,
-  - Can lead to downstream **`Dataset not defined`** errors when downstream flows call `dlt.read_stream(...)`.
+2. **Autoloader Format**: When using `cloudFiles` with DLT streaming, you MUST include `.format("cloudFiles")`
+   - Missing this pattern causes pipeline failures and performance issues
 
 ### Planning Process
 Before implementing features:
@@ -640,9 +577,9 @@ Before implementing features:
 
 ### Common Pitfalls to Avoid
 
-**🚨 CRITICAL: SERVERLESS COMPUTE ONLY** — Never create cluster configurations. All pipelines and jobs must use serverless compute.
-
-**Avoid placing aggregate checks in expectations** — move them to a metrics table instead.
+**🚨 CRITICAL REMINDERS**
+- **SERVERLESS ONLY**: Never create cluster configurations - all pipelines/jobs use serverless compute
+- **NO AGGREGATE EXPECTATIONS**: Move aggregate checks to separate metrics tables
 
 #### Asset Bundle Configuration Pitfalls
 - **Using cluster configurations** - NEVER create job_clusters, new_cluster, or clusters sections (MUST use serverless only)
@@ -716,10 +653,10 @@ databricks pipelines list-pipelines --filter "name LIKE '%<pipeline_name>%'"
 databricks pipelines get <pipeline_id>
 ```
 
-## Key Files and Their Purpose
+## Key Files
 
 - `INITIAL.md` - Comprehensive project documentation and setup guide
-- `PRPs/prp_base.md` - Template for systematic feature planning with AI agents
+- `PRPs/prp_base.md` - Template for systematic feature planning
 - `databricks.yml` - Asset Bundle configuration (to be created)
 - `resources/pipelines.yml` - Pipeline resource definitions (to be created)
 - Pipeline files should return DataFrames and use DLT decorators properly

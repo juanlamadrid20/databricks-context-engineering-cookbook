@@ -1,27 +1,28 @@
-name: "Databricks PRP Template v2 - Context-Rich with Validation Loops"
+# Healthcare LDP Medallion Architecture PRP
 
 ## Purpose
-Template optimized for AI agents to implement Databricks features with sufficient context and self-validation capabilities to achieve working Delta Live Tables, Declarative Pipelines, and Asset Bundle configurations through iterative refinement.
+Implement a comprehensive healthcare data pipeline using Delta Live Tables with context engineering and medallion architecture for health insurance patient data.
 
 ## Goal
-**Build a mature patient data medallion pipeline using Delta Live Tables that implements comprehensive data quality controls, governance, and observability during the ingestion and transformation of healthcare patient records through bronze, silver, and gold layers.**
+**Build a mature health insurance patient data medallion pipeline using Delta Live Tables that implements comprehensive data quality controls, governance, and observability for patient demographics, claims, and medical events processing.**
 
 ## Why
-- **Business value: Establish a mature data ingestion process with quality and governance for healthcare data operations**
-- **No integration with existing data pipelines - this is a greenfield implementation focusing on patient data workflows**
-- **Data quality problems this solves: Ensures accurate, complete, and compliant patient data ingestion for healthcare analytics and clinical decision support**
+- **Business value**: Establish a production-ready data platform for health insurance analytics with proper governance
+- **Greenfield implementation**: Build from scratch focusing on health insurance patient workflows  
+- **Data quality & compliance**: Ensure accurate, complete, and HIPAA-compliant patient data processing
 
 ## What
-**An observable Delta Live Tables pipeline that manages patient data quality during ingestion, providing real-time monitoring, data validation, and governance controls for healthcare data workflows with proper HIPAA compliance and clinical data standards.**
+**A complete medallion architecture (Bronze → Silver → Gold) pipeline that processes health insurance patient data with context engineering, real-time monitoring, data quality validation, and healthcare compliance controls.**
 
 ### Success Criteria
-- [ ] **Observable pipeline that manages quality during ingestion process with real-time monitoring and alerting**
-- [ ] **99.5% data quality score for patient records with comprehensive validation rules**
-- [ ] **Full data lineage tracking and governance controls for healthcare compliance (HIPAA/HITECH)**
-- [ ] **Sub-5 minute end-to-end pipeline latency for critical patient data updates**
-- [ ] **Automated data quality reporting and exception handling for clinical data standards**
+- [ ] **Exactly 3 entity types**: Patients, Claims, Medical Events (strictly enforced domain model)
+- [ ] **Complete medallion pipeline**: Bronze → Silver → Gold layers with proper data quality expectations
+- [ ] **99.5% data quality score** with comprehensive validation rules and HIPAA compliance
+- [ ] **Context engineering implementation**: Multi-source context ingestion, resolution, and enrichment
+- [ ] **Observable pipeline metrics**: Real-time monitoring, alerting, and data governance dashboards
+- [ ] **Asset Bundle deployment**: Infrastructure-as-code with serverless compute configuration
 
-## All Needed Context
+## Context & Requirements
 
 ### Context Engineering Specifications
 ```yaml
@@ -1061,64 +1062,28 @@ databricks api post /api/2.0/sql/statements --json '{
 - ❌ Don't ignore temporal clinical context - patient data must maintain point-in-time clinical accuracy
 - ❌ Don't deploy patient pipelines without HIPAA compliance testing and validation
 
+## Domain Model: Health Insurance Patient Analytics
 
-# Health Insurance Patient Data Engineering Project
-
-## PROJECT OVERVIEW
-
-This project implements a modern data engineering solution for health insurance patient data featuring:
-
-- **Synthetic Data Generation**: Automated generation of realistic health insurance patient test data
+### Architecture Overview
 - **Medallion Architecture**: Bronze → Silver → Gold data transformation pipeline
-- **Delta Live Tables (DLT)**: Declarative pipelines for data processing and quality management
-- **Databricks Asset Bundle**: Infrastructure-as-code deployment and management
-- **Serverless Compute**: Utilizing serverless compute for optimal cost and performance
-- **Volume-based Ingestion**: CSV files ingested from Databricks Volumes using Auto Loader
+- **Delta Live Tables (DLT)**: Declarative pipelines with data quality expectations  
+- **Asset Bundle Deployment**: Infrastructure-as-code with serverless compute
+- **Context Engineering**: Multi-source context ingestion, resolution, and enrichment
+- **HIPAA Compliance**: Healthcare data governance and audit trails
 
-## DEPLOYMENT APPROACH
-
-**This project MUST use Databricks Asset Bundles for all deployment and management activities.**
-
-### Why Asset Bundles?
-- **Infrastructure-as-Code**: Version-controlled deployment configurations
-- **Environment Management**: Seamless promotion between dev/staging/prod
-- **Integrated Workflow**: Native support for DLT pipelines, jobs, and compute resources
-- **Declarative Configuration**: YAML-based configuration for reproducible deployments
-- **Best Practice**: Recommended approach for modern Databricks project management
-
-## ARCHITECTURE
-
-### Unity Catalog Governance Structure
+### Unity Catalog Structure
 ```
-Production Hierarchy:
-├── juan_prod
-│   └── data_eng              # Single schema for all layers
-│       ├── bronze_*          # Raw patient data tables
-│       ├── silver_*          # Cleaned patient data tables
-│       └── gold_*           # Analytics-ready patient tables
-
-Development Hierarchy:
-├── juan_dev
-│   └── data_eng              # Single schema for all layers
-│       ├── bronze_*          # Raw patient data tables
-│       ├── silver_*          # Cleaned patient data tables
-│       └── gold_*           # Analytics-ready patient tables
+Catalog: {environment}_{user}  # e.g., dev_juan, prod_juan
+└── Schema: data_eng
+    ├── bronze_*     # Raw ingestion (patients, claims, medical_events)
+    ├── silver_*     # Cleaned & validated data
+    └── gold_*       # Analytics-ready dimensional model
 ```
 
-### Source Schema & Data Architecture
-**Define your business domain and data model here:**
-
-#### Data Sources & Integration Patterns
-- **Primary Data Source**: Health insurance patient CSV files in Databricks Volumes
-  - Format: CSV files with patient demographics, claims, and medical history
-  - Ingestion: Auto Loader with Delta Live Tables for schema evolution
-  - Frequency: Hourly batch processing (append-only)
-  - Location: Databricks Volumes path for file landing
-  
-- **Synthetic Data Generation**: Automated creation of realistic test data
-  - Format: CSV files matching production schema
-  - Frequency: On-demand generation for testing and development
-  - Output: Written to same Volumes path for consistent processing
+### Data Sources
+- **Health Insurance CSV Files**: Patient demographics, claims, medical events (Databricks Volumes)
+- **Synthetic Data Generation**: On-demand realistic test data matching production schema
+- **Auto Loader Ingestion**: Schema evolution with hourly batch processing
 
 #### Entity Relationship Model (MANDATORY - STRICTLY ENFORCE)
 
@@ -1191,143 +1156,33 @@ Health Insurance Domain: Patient Analytics (EXACTLY 3 ENTITIES)
 - **Performance**: Pre-aggregated metrics, materialized views
 - **Governance**: Change data capture enabled, access controls
 
-### Data Warehouse Design Patterns
-
-#### Dimensional Modeling Strategy
-<Dimensional model approach>
-- **Star Schema**: Centralized fact tables with denormalized dimensions
-- **Slowly Changing Dimensions**: Type 1 (overwrite) and Type 2 (historical tracking)
-- **Fact Table Grain**: Define the lowest level of detail for each fact table
-- **Conformed Dimensions**: Shared dimensions across multiple fact tables
-
-#### Performance Optimization
-- **Partitioning Strategy**: By date, region, or business unit
-- **Z-Order Optimization**: On frequently filtered columns
-- **Liquid Clustering**: For high-cardinality dimensions
-- **Bloom Filters**: For point lookups on large tables
-
-## PROJECT STRUCTURE
-
+### Project Structure
 ```
-databricks-data-engineering-project/
-├── .claude/                     # Claude Code configuration
-│   └── commands/               # Custom Claude commands
-├── PRPs/                       # Problem Requirements & Proposals
-│   ├── templates/              # PRP templates for systematic development
-│   └── {feature-name}.md       # Individual feature PRPs
-├── databricks.yml              # Asset Bundle configuration (root)
-├── resources/                  # Asset Bundle resource definitions
-│   ├── pipelines.yml          # DLT pipeline configurations
-│   ├── jobs.yml               # Job workflow definitions
-├── src/                      # Source code
-│   ├── pipelines/            # DLT pipeline definitions
-│   │   ├── bronze/           # Raw data ingestion pipelines
-│   │   ├── silver/           # Data cleaning and transformation
-│   │   ├── gold/             # Business analytics and aggregations
-│   │   └── shared/           # Shared utilities and configurations
-│   ├── jobs/                 # Databricks job definitions
-│   │   ├── data_generation/  # Synthetic data generation
-│   │   ├── maintenance/      # Data maintenance and optimization
-│   │   └── monitoring/       # Data quality and pipeline monitoring
-│   └── tests/                # Unit and integration tests
-│       ├── unit/             # Unit tests for pipeline logic
-│       ├── integration/      # End-to-end pipeline tests
-│       └── fixtures/         # Test data and mock configurations
-├── docs/                     # Project documentation
-│   ├── architecture/         # Architecture decision records
-│   ├── runbooks/            # Operational procedures
-│   └── schemas/             # Data schema documentation
-└── scripts/                 # Deployment and utility scripts
-    ├── setup/               # Environment setup scripts
-    └── migrations/          # Schema migration scripts
+healthcare-ldp-medallion/
+├── databricks.yml              # Asset Bundle configuration
+├── resources/
+│   ├── pipelines.yml          # DLT pipeline definitions  
+│   └── jobs.yml               # Data generation and monitoring jobs
+├── src/
+│   ├── pipelines/
+│   │   ├── bronze/            # Raw data ingestion (3 tables)
+│   │   ├── silver/            # Data cleaning & validation (3 tables)
+│   │   ├── gold/              # Dimensional model (3 tables)
+│   │   └── shared/            # Common schemas and utilities
+│   ├── jobs/
+│   │   ├── data_generation/   # Synthetic patient data generation
+│   │   └── monitoring/        # Context quality monitoring
+│   └── tests/                 # Unit and integration tests
+└── PRPs/                      # Planning and documentation
 ```
 
-## DEVELOPMENT SETUP
+## Implementation Guidelines
 
-### Prerequisites
-- **Databricks CLI configured** (required for Asset Bundle deployment)
-- **Python 3.12+** with databricks-sdk
-- **Access to Databricks workspace** with DLT capabilities and Unity Catalog
-- **Asset Bundle permissions** for target workspace and environments
-- **Databricks Volumes** access for CSV file ingestion
-- **Serverless compute** enabled in workspace
-
-### Getting Started
-1. **Initialize Asset Bundle structure** using `databricks bundle init`
-2. **Review Asset Bundle patterns** in `CLAUDE.md` (comprehensive configuration examples)
-3. **Configure your bundle** for dev/staging/prod environments
-4. **Use the PRP templates** in `PRPs/templates/` for planning
-5. **Deploy using Asset Bundles**: `databricks bundle deploy`
-6. **Follow the development patterns** documented in `CLAUDE.md`
-
-> **📋 Asset Bundle Configuration Reference**: See `CLAUDE.md` for comprehensive Asset Bundle patterns, workflow commands, and configuration templates.
-
-## EXAMPLES & REFERENCE IMPLEMENTATIONS
-
-> **🔧 Asset Bundle Templates**: Complete Asset Bundle configuration templates and patterns are documented in `CLAUDE.md` - Asset Bundle Management section.
-
-### Domain-Specific Implementation Examples
-
-> **💻 Pipeline Configuration Patterns**: See `CLAUDE.md` for Asset Bundle configuration patterns, environment setup, and path handling.
-
-#### Health Insurance Patient Data Schema (COMPLETE DOMAIN MODEL)
-```python
-# Domain-specific schema for health insurance patient data - MANDATORY FIELDS
-from pyspark.sql.types import StructType, StructField, StringType, IntegerType, TimestampType, DoubleType, BooleanType
-
-# COMPLETE PATIENT SCHEMA - MUST INCLUDE ALL FIELDS
-PATIENT_SCHEMA = StructType([
-    # Primary Key
-    StructField("patient_id", StringType(), False),      # PK - MANDATORY
-    
-    # Demographics
-    StructField("first_name", StringType(), True),
-    StructField("last_name", StringType(), True),
-    StructField("age", IntegerType(), True),             # 18-85 range
-    StructField("sex", StringType(), True),              # MALE/FEMALE
-    StructField("region", StringType(), True),           # NORTHEAST/NORTHWEST/SOUTHEAST/SOUTHWEST
-    
-    # Health Metrics
-    StructField("bmi", DoubleType(), True),              # 16-50 range
-    StructField("smoker", BooleanType(), True),          # Boolean flag
-    StructField("children", IntegerType(), True),        # Number of dependents
-    
-    # Financial Data
-    StructField("charges", DoubleType(), True),          # Calculated insurance premium
-    
-    # Insurance Details
-    StructField("insurance_plan", StringType(), True),
-    StructField("coverage_start_date", StringType(), True),
-    
-    # Temporal Data
-    StructField("timestamp", StringType(), True),        # Record creation timestamp
-])
-```
-
-### External Resources & Documentation
-- **Primary Reference**: See `CLAUDE.md` for comprehensive Databricks documentation links, development patterns, and configuration examples
-- **Context Engineering**: Use MCP servers for additional code examples and patterns
-
-## DOCUMENTATION
-
-### Primary Documentation Sources
-- **Context7 MCP Server**: For best practices and updated documentation
-- **Databricks DLT Documentation**:
-  - [DLT Development Guide](https://docs.databricks.com/aws/en/dlt/develop)
-  - [Python DLT Development](https://docs.databricks.com/aws/en/dlt/python-dev)
-
-### Additional Resources
-- **<TODO: Add your primary schema/business documentation sources>**
-- **<TODO: Include links to your data governance policies and standards>**
-- **Technical Documentation**: All Databricks platform documentation consolidated in `CLAUDE.md` - Consolidated Documentation References section
-
-## DEVELOPMENT GUIDELINES
-
-### Schema Implementation
-- **Naming Convention**: `{layer}_{entity_name}` (e.g., bronze_patients, silver_patients, gold_patient_metrics)
-- **Data Types**: String for IDs, Integer for ages, Double for monetary amounts, Timestamp for dates
-- **Primary Keys**: patient_id for all patient-related tables, claim_id for claims
-- **Partitioning Strategy**: Partition by ingestion date for bronze, by patient creation date for silver/gold
+### Schema Standards
+- **Naming Convention**: `{layer}_{entity}` (e.g., bronze_patients, silver_claims, gold_patient_metrics)
+- **Data Types**: String for IDs, Integer for counts, Double for amounts, Boolean for flags
+- **Primary Keys**: patient_id, claim_id, event_id for each respective entity
+- **Partitioning**: By ingestion date (bronze), by business date (silver/gold)
 
 ### Mandatory Schema Implementation (DOMAIN MODEL ENFORCEMENT)
 
@@ -1409,116 +1264,42 @@ MEDICAL_EVENTS_SCHEMA = StructType([
 - **fact_claims**: Claims fact table with pre-aggregated metrics and foreign key to dim_patients
 - **fact_medical_events**: Medical events fact table with foreign key to dim_patients
 
-#### Referential Integrity Requirements (ENFORCE ACROSS ALL LAYERS)
-1. **Bronze Layer**: Basic foreign key presence validation
-2. **Silver Layer**: Strict referential integrity - orphaned records must be quarantined
-3. **Gold Layer**: Dimensional modeling with proper surrogate keys and foreign key relationships
+### Key Implementation Requirements
+1. **Exactly 3 entities**: Patients, Claims, Medical_Events (no additional entities)
+2. **Referential integrity**: All claims/medical_events must reference valid patient_id
+3. **HIPAA compliance**: PII hashing, audit trails, data quality quarantine 
+4. **Asset Bundle deployment**: Infrastructure-as-code with serverless compute
+5. **Context engineering**: Multi-source ingestion, resolution, enrichment patterns
 
-### Best Practices
-
-> **⚙️ Asset Bundle & Pipeline Patterns**: Complete development practices, configuration patterns, and critical patterns are documented in `CLAUDE.md` - Mandatory Practices section.
-
-#### Domain-Specific Best Practices
-1. **Data Quality**: Implement comprehensive data quality checks in DLT pipelines using `@dlt.expect_*` decorators
-2. **Testing**: Include unit tests for data generation logic
-3. **Documentation**: Document data lineage and transformation logic
-4. **Healthcare Compliance**: Ensure PII handling meets HIPAA requirements and data governance standards
-5. **Schema Evolution**: Design for schema changes in patient data over time
-
-#### Health Insurance Data Quality Patterns (COMPLETE SCHEMA VALIDATION)
+### Data Quality Patterns
 ```python
-# Domain-specific data quality expectations for patient data - ALL FIELDS
+# Health insurance data validation example
 @dlt.expect_all_or_drop({
-    # Primary Key Validation
     "valid_patient_id": "patient_id IS NOT NULL AND LENGTH(patient_id) >= 5",
-    
-    # Demographics Validation
-    "valid_age": "age IS NOT NULL AND age BETWEEN 18 AND 85",
+    "valid_age": "age IS NOT NULL AND age BETWEEN 18 AND 85", 
     "valid_sex": "sex IS NOT NULL AND sex IN ('MALE', 'FEMALE')",
-    "valid_region": "region IS NOT NULL AND region IN ('NORTHEAST', 'NORTHWEST', 'SOUTHEAST', 'SOUTHWEST')",
-    
-    # Health Metrics Validation
     "valid_bmi": "bmi IS NOT NULL AND bmi BETWEEN 16 AND 50",
-    "valid_smoker": "smoker IS NOT NULL",
-    "valid_children": "children IS NOT NULL AND children >= 0",
-    
-    # Financial Data Validation
     "valid_charges": "charges IS NOT NULL AND charges > 0"
 })
-@dlt.expect_all({
-    # Name Completeness
-    "complete_name": "first_name IS NOT NULL AND last_name IS NOT NULL",
-    
-    # Insurance Details
-    "valid_coverage_date": "coverage_start_date IS NOT NULL",
-    "valid_insurance_plan": "insurance_plan IS NOT NULL",
-    
-    # Temporal Data
-    "valid_timestamp": "timestamp IS NOT NULL",
-    
-    # Reasonable Range Checks
-    "reasonable_age": "age BETWEEN 18 AND 80",  # Most common range
-    "reasonable_bmi": "bmi BETWEEN 18 AND 40",  # Most common range
-    "reasonable_children": "children <= 10"     # Reasonable upper bound
-})
 def silver_patients():
-    return dlt.read("bronze_patients")  # CORRECT: Simple table name - catalog/schema specified at pipeline level
+    return dlt.read("bronze_patients")
 ```
 
-### Common Pitfalls to Avoid
+## Development Phases
 
-> **⚠️ Asset Bundle & Pipeline Pitfalls**: Complete list of configuration and development pitfalls documented in `CLAUDE.md` - Common Pitfalls section.
+1. **Asset Bundle Setup**: Configure `databricks.yml` with dev/prod environments
+2. **Synthetic Data Generation**: Create realistic patient/claims/medical_events CSV files  
+3. **Bronze Layer**: Auto Loader ingestion with schema enforcement
+4. **Silver Layer**: Data cleaning, validation, and context resolution
+5. **Gold Layer**: Dimensional modeling with fact/dimension tables
+6. **Context Engineering**: Multi-source context processing and quality monitoring
 
-#### Domain-Specific Pitfalls
+## References
 
-**🚨 DOMAIN MODEL VIOLATIONS (CRITICAL - NEVER DO THESE):**
-- **Creating additional entities** - Only 3 entities allowed: Patients, Claims, Medical_Events
-- **Missing referential integrity** - All claims and medical_events MUST reference valid patient_id
-- **Incorrect table counts** - Each layer must have exactly 3 tables (bronze_*, silver_*, gold_*)
-- **Schema deviations** - Use EXACTLY the schemas defined in Mandatory Schema Implementation section
-- **Additional CSV files** - Generate only patients.csv, claims.csv, medical_events.csv
-- **Foreign key violations** - Maintain 1:N relationships (1 patient : many claims/events)
-
-**General Development Pitfalls:**
-- **Over-engineering synthetic data generation** (start simple with basic patient demographics)
-- **Missing proper error handling** in DLT pipelines
-- **Not considering healthcare data retention** and compliance policies
-- **Ignoring PII handling requirements** for patient data
-- **Not implementing proper access controls** for sensitive health information
-- **Missing data lineage tracking** for compliance auditing
-- **Hard-coding connection strings** or credentials
-- **Ignoring data quality constraints** in pipeline design
-
-## NEXT STEPS
-
-1. **Phase 0**: **Initialize and configure Databricks Asset Bundle structure**
-   - Set up `databricks.yml` with dev/prod environments and serverless compute
-   - Configure Unity Catalog permissions and Volumes access
-   - Test basic deployment workflow with `databricks bundle deploy`
-2. **Phase 1**: Set up synthetic health insurance patient data generation
-   - Create realistic patient demographics, insurance plans, and medical history
-   - Output CSV files to Databricks Volumes for testing
-3. **Phase 2**: Implement Bronze layer ingestion pipeline for patient CSV files
-   - Auto Loader configuration for Volumes path with hourly triggers
-   - Schema enforcement and data quality expectations
-4. **Phase 3**: Build Silver layer transformation logic for patient data cleaning
-   - Data validation, standardization, and business rule application
-   - Handle PII data according to healthcare compliance requirements
-5. **Phase 4**: Create Gold layer dimensional models for patient analytics
-   - Patient demographics summary, insurance utilization metrics
-   - Aggregated views for business intelligence and reporting
-6. **Phase 5**: Implement Lakeflow jobs for orchestration and monitoring
-   - Hourly batch job scheduling and pipeline health monitoring
-
-## CONTRIBUTING
-
-Before implementing features:
-1. Create a PRP (Problem Requirements & Proposal) using templates in `PRPs/templates/`
-2. Review existing examples for patterns and best practices
-3. Consult documentation sources for latest recommendations
-4. Test with synthetic data before production deployment
-5. **Follow healthcare data compliance**: Ensure PII handling meets HIPAA requirements and data governance standards
+- **Primary documentation**: See `CLAUDE.md` for complete Databricks patterns and Asset Bundle configurations
+- **Healthcare compliance**: HL7 FHIR standards, HIPAA requirements
+- **Context engineering**: MCP servers for additional examples and patterns
 
 ---
 
-*This project demonstrates modern data engineering practices using Databricks platform capabilities while maintaining enterprise-grade quality and performance standards for health insurance patient data analytics, with full compliance to healthcare data governance requirements.*
+*Modern health insurance data platform using Databricks medallion architecture with context engineering and HIPAA compliance.*
