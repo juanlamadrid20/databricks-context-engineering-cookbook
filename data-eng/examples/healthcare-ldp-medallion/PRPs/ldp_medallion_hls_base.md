@@ -142,6 +142,25 @@ tests/
 # CRITICAL: Delta Live Tables streaming with patient data requires careful ordering for clinical accuracy
 # CRITICAL: Healthcare audit logs are required for compliance - enable Delta change data feed on all patient tables
 ```
+## ARCHITECTURE
+
+### Unity Catalog Governance Structure
+```
+Production Hierarchy:
+├── juan_prod
+│   └── data_eng              # Single schema for all layers
+│       ├── bronze_*          # Raw patient data tables
+│       ├── silver_*          # Cleaned patient data tables
+│       └── gold_*           # Analytics-ready patient tables
+
+Development Hierarchy:
+├── juan_dev
+│   └── data_eng              # Single schema for all layers
+│       ├── bronze_*          # Raw patient data tables
+│       ├── silver_*          # Cleaned patient data tables
+│       └── gold_*           # Analytics-ready patient tables
+```
+
 
 ## Implementation Blueprint
 
