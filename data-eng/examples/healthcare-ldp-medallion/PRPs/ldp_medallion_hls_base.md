@@ -1,10 +1,13 @@
 # Healthcare LDP Medallion Architecture PRP
 
 ## Purpose
-Implement a comprehensive healthcare data pipeline using Delta Live Tables with context engineering and medallion architecture for health insurance patient data.
+Implement a comprehensive healthcare data pipeline using Lakeflow Declarative Pipelines with context engineering and medallion architecture for health insurance patient data.
+
+## Core Principles
+- <TODO>
 
 ## Goal
-**Build a mature health insurance patient data medallion pipeline using Delta Live Tables that implements comprehensive data quality controls, governance, and observability for patient demographics, claims, and medical events processing.**
+**Build a mature health insurance patient data medallion pipeline using Lakeflow Declarative Pipeline that implements comprehensive data quality controls, governance, and observability for patient demographics, claims, and medical events processing.**
 
 ## Why
 - **Business value**: Establish a production-ready data platform for health insurance analytics with proper governance
@@ -15,19 +18,109 @@ Implement a comprehensive healthcare data pipeline using Delta Live Tables with 
 **A complete medallion architecture (Bronze → Silver → Gold) pipeline that processes health insurance patient data with context engineering, real-time monitoring, data quality validation, and healthcare compliance controls.**
 
 ### Success Criteria
+
 - [ ] **Exactly 3 entity types**: Patients, Claims, Medical Events (strictly enforced domain model)
 - [ ] **Complete medallion pipeline**: Bronze → Silver → Gold layers with proper data quality expectations
 - [ ] **99.5% data quality score** with comprehensive validation rules and HIPAA compliance
 - [ ] **Context engineering implementation**: Multi-source context ingestion, resolution, and enrichment
 - [ ] **Observable pipeline metrics**: Real-time monitoring, alerting, and data governance dashboards
-- [ ] **Asset Bundle deployment**: Infrastructure-as-code with serverless compute configuration
 
-## Context & Requirements
+## Databricks Lakeflow Declarative Pipelines (LDP)
 
-### Context Engineering Specifications
+You are helping develop **Lakeflow Declarative Pipelines** using Databricks best practices. Focus on:
+
+#### Core LDP Components
+- **Pipelines**: Complete data processing workflows
+- **Flows**: Individual pipeline components 
+- **Streaming Tables**: Real-time data processing tables
+- **Materialized Views**: Optimized query result storage
+
+#### Primary Use Cases
+1. **Data Ingestion**
+   - Cloud storage: S3, ADLS Gen2, Google Cloud Storage
+   - Message buses: Kafka, Kinesis, Pub/Sub, EventHub, Pulsar
+2. **Data Transformations**
+   - Incremental batch processing
+   - Real-time streaming processing
+
+#### Development Languages
+- **Python**: For complex transformations and custom logic
+
+### LDP Best Practices
+
+#### Pipeline Development
+1. **Declarative Approach**: Use SQL DDL statements to define data transformations
+2. **Incremental Processing**: Implement incremental batch and streaming patterns
+3. **Data Quality**: Include data quality constraints and expectations
+4. **Error Handling**: Implement robust error handling and retry logic
+5. **Monitoring**: Use built-in monitoring and alerting features
+
+#### Code Organization
+- Organize pipelines by business domain or data source
+- Use clear, descriptive naming conventions
+- Document pipeline dependencies and data lineage
+- Implement proper version control practices
+
+#### Performance Optimization
+- Use appropriate clustering and partitioning strategies
+- Optimize for streaming vs batch processing patterns
+- Monitor pipeline performance metrics
+- Implement proper resource allocation
+
+### Synthetic Data Generation with dbldatagen
+
+When working with **dbldatagen** for generating synthetic test data at scale:
+
+#### Core Components
+- **DataGenerator** - Primary entry point for data generation
+- **ColumnGenerationSpec** - Defines how individual columns should be generated
+- **Constraints System** - Ensures data relationships and validity rules
+- **Distributions** - Support for various statistical distributions (Normal, Beta, Gamma, Exponential)
+- **Text Generation** - Template-based and Faker-integrated text generation
+- **Standard Datasets** - Pre-built realistic datasets for common use cases
+
+#### Integration with LDP
+- Use dbldatagen to create realistic test data for pipeline development
+- Generate data that matches production schemas and constraints
+- Create streaming data sources for real-time pipeline testing
+- Build comprehensive test datasets for data quality validation
+
+#### Key Patterns
+```python
+# Basic data generation for LDP testing
+from dbldatagen import DataGenerator
+import dbldatagen as dg
+
+# Generate user events for streaming pipeline
+df_spec = (DataGenerator(spark, rows=1000000, partitions=8)
+           .withColumn("user_id", "long", minValue=1000000, maxValue=9999999)
+           .withColumn("event_time", "timestamp", begin="2024-01-01", end="2024-12-31")
+           .withColumn("event_type", "string", values=["click", "view", "purchase"])
+           .withColumn("amount", "decimal(10,2)", minValue=0.01, maxValue=1000.00)
+)
+
+df = df_spec.build()
+```
+
+<!-- start specific specs here related to hls -->
+
+### Documentation & References
 ```yaml
-# Context Definition & Scope
+- file: CLAUDE.md
+  why: Foundational Databricks development patterns and external documentation references
+
+- url: https://www.hl7.org/fhir/patient.html
+  why: FHIR Patient resource specifications for healthcare data standards and validation rules
+  
+- url: https://www.hipaajournal.com/hipaa-compliance-checklist/
+  why: HIPAA compliance requirements for patient data handling, encryption, and audit logging
+```
+
+### Healthcare LDP Context Definitions
+
+```yaml
 context_domain: patient_healthcare # Patient clinical, demographic, and care coordination context
+
 context_sources:
   - source: EHR_SYSTEM # Electronic Health Records system
     type: streaming # Real-time patient updates
@@ -60,73 +153,10 @@ context_graph_structure:
   - graph_algorithms: care_pathway_analysis, clinical_decision_support # Healthcare-specific algorithms
 ```
 
-### Documentation & References (list all context needed to implement the feature)
-```yaml
-# MUST READ - Include these in your context window
-
-# Primary Development Reference
-- file: CLAUDE.md
-  why: Complete Databricks development patterns, Asset Bundle configurations, DLT pipeline examples, and all external documentation references
-  extract: "All sections for comprehensive context - see Consolidated Documentation References section for external URLs"
-
-# Domain-Specific Healthcare Documentation  
-- url: https://www.hl7.org/fhir/patient.html
-  why: FHIR Patient resource specifications for healthcare data standards and validation rules
-  
-- url: https://www.hipaajournal.com/hipaa-compliance-checklist/
-  why: HIPAA compliance requirements for patient data handling, encryption, and audit logging
-
-- docfile: PRPs/ai_docs/healthcare_data_governance.md
-  why: Healthcare-specific data governance, patient privacy, and clinical data validation requirements
-
-```
-
-### Current Codebase tree (run `tree` in the root of the project) to get an overview of the codebase
-```bash
-# Greenfield implementation - no existing patient data pipeline codebase
-# Starting with basic project structure:
-dbrx-ctxeng-de/
-  - CLAUDE.md
-  - examples/
-  - PRPs/
-    - prp_base.md
-    - templates/
-  - README.md
-```
-
-### Desired Codebase tree with files to be added and responsibility of file
-```bash
-# Patient Data Medallion Pipeline Structure:
-src/
-  pipelines/
-    bronze/
-      patient_ehr_ingestion.py          # Raw EHR patient data ingestion with HIPAA compliance
-      patient_adt_ingestion.py          # Admit/Discharge/Transfer event ingestion
-      patient_lab_ingestion.py          # Laboratory results data ingestion
-    silver/
-      patient_data_transformation.py    # Patient data cleansing, standardization, and clinical validation
-      patient_entity_resolution.py      # Patient matching and deduplication across systems
-      patient_context_enrichment.py     # Clinical context and care coordination enrichment
-    gold/
-      patient_clinical_metrics.py       # Clinical quality metrics and patient outcome analytics
-      patient_care_coordination.py      # Care team and episode-based analytics
-      patient_quality_dashboard.py      # Data quality monitoring and governance views
-  data_generation/
-    synthetic_patient_generator.py      # HIPAA-compliant synthetic patient data for testing
-databricks.yml                         # Asset Bundle configuration for patient_data_medallion_pipeline
-resources/
-  pipelines.yml                        # Pipeline configuration with healthcare compliance settings
-  workflows.yml                        # Monitoring and data quality jobs
-tests/
-  test_patient_pipeline.py             # Unit tests for patient data transformations and quality rules
-  test_hipaa_compliance.py             # HIPAA compliance validation tests
-```
-
 ### Known Gotchas of our codebase & Databricks Quirks
 ```python
 # CRITICAL: Delta Live Tables requires specific decorators and patterns
 # Example: @dlt.table() functions must return DataFrames, not display()
-# Example: Asset Bundles use specific variable interpolation syntax ${var.environment}
 # Example: Pipeline dependencies must be explicit using dlt.read() or dlt.read_stream()
 
 # HEALTHCARE DATA SPECIFIC GOTCHAS:
@@ -142,26 +172,6 @@ tests/
 # CRITICAL: Delta Live Tables streaming with patient data requires careful ordering for clinical accuracy
 # CRITICAL: Healthcare audit logs are required for compliance - enable Delta change data feed on all patient tables
 ```
-## ARCHITECTURE
-
-### Unity Catalog Governance Structure
-```
-Production Hierarchy:
-├── juan_prod
-│   └── data_eng              # Single schema for all layers
-│       ├── bronze_*          # Raw patient data tables
-│       ├── silver_*          # Cleaned patient data tables
-│       └── gold_*           # Analytics-ready patient tables
-
-Development Hierarchy:
-├── juan_dev
-│   └── data_eng              # Single schema for all layers
-│       ├── bronze_*          # Raw patient data tables
-│       ├── silver_*          # Cleaned patient data tables
-│       └── gold_*           # Analytics-ready patient tables
-```
-
-
 ## Implementation Blueprint
 
 ### Context-Aware Data Models and Structure
@@ -774,330 +784,15 @@ def context_quality_monitoring():
                    ).filter(lambda x: x.isNotNull()))
         .filter(size(col("sla_violations")) > 0)  # Only keep violations for alerting
     )
-
-# **<TODO: Add additional context engineering functions for your specific domain>**
 ```
-
-### Integration Points
-```yaml
-DATABRICKS_ASSET_BUNDLE:
-  - file: databricks.yml
-  - add_resource: 
-      name: "patient_data_medallion_pipeline"
-      type: "pipelines"
-      configuration: "resources/pipelines.yml"
-  
-PIPELINE_CONFIGURATION:
-  - file: resources/pipelines.yml
-  - pattern: |
-      patient_data_medallion_pipeline:
-        name: "${var.pipeline_name}"
-        target: "${var.environment}"
-        libraries:
-          - file:
-              path: "./src/pipelines"
-        clusters:
-          - label: "default"
-            node_type_id: "${var.node_type}"
-            num_workers: "${var.num_workers}"
-            spark_conf:
-              # "spark.databricks.delta.properties.defaults.encryption.enabled": "true" # TODO: Claud.md review
-              "spark.databricks.delta.properties.defaults.changeDataFeed.enabled": "true"
-            custom_tags:
-              "compliance": "HIPAA"
-              "data_classification": "PHI"
-```
-
-## Validation Loop
-
-### Level 1: Syntax & Configuration Validation
-```bash
-# Run these FIRST - fix any errors before proceeding
-databricks bundle validate --environment dev    # Validate Asset Bundle config
-python -m py_compile src/pipelines/**/*.py      # Check Python syntax
-
-# Healthcare-specific validations
-python -m pytest tests/test_hipaa_compliance.py -v  # HIPAA compliance validation
-python -c "import yaml; yaml.safe_load(open('resources/pipelines.yml'))"  # YAML syntax check
-
-# Expected: No errors. If errors, READ the error and fix.
-# CRITICAL: All HIPAA compliance tests must pass before deployment
-```
-
-### Level 2: Unit Tests for Pipeline Logic
-```python
-# CREATE test_patient_pipeline.py with these test cases:
-import pytest
-from pyspark.sql import SparkSession
-from unittest.mock import patch
-from pyspark.sql.functions import col
-
-def test_bronze_patient_ehr_schema():
-    """Verify bronze patient EHR table schema is correct for healthcare data"""
-    # Mock dlt.read() and test schema validation
-    with patch('dlt.read') as mock_read:
-        mock_read.return_value = create_mock_patient_dataframe()
-        result = bronze_patient_ehr()
-        assert "patient_id" in result.columns
-        assert "mrn" in result.columns
-        assert "ssn_hash" in result.columns
-        assert "ssn" not in result.columns  # Critical: raw SSN must be removed
-        assert "_ingested_at" in result.columns
-
-def test_silver_patient_transformation():
-    """Verify silver layer patient transformations for clinical data standardization"""
-    # Test HIPAA de-identification and clinical validation
-    with patch('dlt.read') as mock_read:
-        mock_read.return_value = create_test_patient_bronze_data()
-        result = silver_patient_master()
-        
-        # Verify no null patient IDs
-        assert result.filter(col("patient_id").isNull()).count() == 0
-        
-        # Verify HIPAA age de-identification (89+ becomes 90)
-        elderly_patients = result.filter(col("age_years") == 90)
-        assert elderly_patients.count() > 0  # Should have de-identified elderly patients
-        
-        # Verify gender standardization
-        valid_genders = result.filter(col("gender").isin(["M", "F", "U"]))
-        assert valid_genders.count() == result.count()
-
-def test_patient_data_quality_expectations():
-    """Verify DLT expectations work correctly for patient data quality rules"""
-    # Test that malformed patient data is properly quarantined
-    test_data = create_malformed_patient_data()
-    
-    # Test age validation (0-150 years)
-    invalid_age_data = test_data.filter(col("age_years") < 0 | col("age_years") > 150)
-    assert invalid_age_data.count() > 0  # Should detect invalid ages
-    
-    # Test test patient detection
-    test_patients = test_data.filter(upper(col("last_name")).contains("TEST"))
-    assert test_patients.count() > 0  # Should detect test patients for quarantine
-
-def test_hipaa_compliance():
-    """Verify HIPAA compliance across patient data transformations"""
-    test_data = create_patient_test_data()
-    result = silver_patient_master()
-    
-    # Verify no raw SSN in result
-    assert "ssn" not in result.columns
-    assert "ssn_hash" in result.columns
-    
-    # Verify elderly patient de-identification
-    elderly = result.filter(col("age_years") >= 89)
-    if elderly.count() > 0:
-        assert elderly.select("age_years").distinct().collect()[0][0] == 90
-    
-    # Verify change data feed is enabled for audit
-    table_properties = result.schema.metadata
-    # Note: In actual implementation, check Delta table properties
-
-# Context Engineering Test Cases
-
-def test_context_resolution_logic():
-    """Verify context resolution handles conflicts correctly"""
-    # Test multiple contexts for same entity with different confidence scores
-    test_contexts = create_conflicting_context_data()
-    result = context_resolution_function(test_contexts)
-    
-    # Verify highest confidence context wins
-    assert result.filter(col("confidence_score") < 0.8).count() == 0
-    # Verify no duplicate canonical entity IDs
-    assert result.groupBy("canonical_entity_id").count().filter(col("count") > 1).count() == 0
-    # **<TODO: Add your conflict resolution validation logic>**
-
-def test_temporal_context_validity():
-    """Verify temporal context windows are handled correctly"""
-    # Test overlapping effective periods
-    test_data = create_temporal_context_data()
-    result = temporal_context_function(test_data)
-    
-    # Verify temporal consistency
-    invalid_temporal = result.filter(
-        (col("effective_to").isNotNull()) & 
-        (col("effective_from") > col("effective_to"))
-    )
-    assert invalid_temporal.count() == 0
-    
-    # Test point-in-time context retrieval
-    point_in_time = datetime(2024, 1, 15, 10, 0, 0)
-    active_contexts = result.filter(
-        (col("effective_from") <= lit(point_in_time)) &
-        ((col("effective_to").isNull()) | (col("effective_to") > lit(point_in_time)))
-    )
-    # **<TODO: Add your temporal logic validation>**
-
-def test_context_graph_traversal():
-    """Verify context relationship traversal works correctly"""
-    # Test multi-hop context enrichment
-    test_contexts = create_graph_context_data()
-    test_relationships = create_context_relationships_data()
-    
-    result = context_graph_enrichment(test_contexts, test_relationships)
-    
-    # Verify relationship counts are correct
-    assert result.filter(col("relationship_count") < 0).count() == 0
-    # Verify centrality scores are calculated
-    assert result.filter(col("context_centrality_score").isNull()).count() == 0
-    # **<TODO: Add graph traversal validation for your specific algorithms>**
-
-def test_context_quality_metrics():
-    """Verify context quality calculations are accurate"""
-    test_contexts = create_quality_test_data()
-    result = context_quality_function(test_contexts)
-    
-    # Test completeness score calculation
-    complete_contexts = result.filter(col("completeness_score") == 1.0)
-    incomplete_contexts = result.filter(col("completeness_score") < 1.0)
-    # Verify completeness logic
-    
-    # Test freshness score calculation
-    fresh_contexts = result.filter(col("freshness_score") >= 0.8)
-    stale_contexts = result.filter(col("freshness_score") < 0.5)
-    # **<TODO: Add your quality metric validations>**
-
-def test_context_sla_monitoring():
-    """Verify SLA violation detection works correctly"""
-    test_contexts = create_sla_violation_data()
-    result = context_sla_monitoring(test_contexts)
-    
-    # Verify SLA violations are detected
-    confidence_violations = result.filter(array_contains(col("sla_violations"), "low_confidence"))
-    freshness_violations = result.filter(array_contains(col("sla_violations"), "stale_context"))
-    
-    assert confidence_violations.count() > 0  # Should detect low confidence
-    assert freshness_violations.count() > 0   # Should detect stale context
-    # **<TODO: Add your SLA monitoring validations>**
-
-def test_context_entity_resolution():
-    """Verify entity resolution algorithms work correctly"""
-    test_entities = create_entity_resolution_test_data()
-    result = entity_resolution_function(test_entities)
-    
-    # Test fuzzy matching accuracy
-    correctly_resolved = result.filter(col("resolution_confidence") >= 0.9)
-    # Test that duplicate entities are merged
-    unique_entities = result.select("canonical_entity_id").distinct().count()
-    # **<TODO: Add your entity resolution accuracy tests>**
-
-# **<TODO: Add additional test cases for your business logic>**
-```
-
-```bash
-# Run and iterate until passing:
-python -m pytest tests/test_patient_pipeline.py -v
-python -m pytest tests/test_hipaa_compliance.py -v
-# If failing: Read error, understand root cause, fix code, re-run
-# CRITICAL: All HIPAA compliance tests must pass before deployment
-```
-
-### Level 3: Integration Test with Asset Bundle
-```bash
-# Deploy to dev environment with HIPAA compliance
-databricks bundle deploy --environment dev
-
-# Trigger patient data pipeline run
-databricks jobs run-now --job-id patient_data_medallion_pipeline
-
-# Monitor pipeline execution
-databricks jobs get-run <run_id>
-
-# Verify patient data quality and compliance
-databricks api post /api/2.0/sql/statements --json '{
-  "statement": "SELECT COUNT(*) FROM bronze_patient_ehr WHERE patient_id IS NOT NULL",
-  "warehouse_id": "<your_warehouse_id>"
-}'
-
-databricks api post /api/2.0/sql/statements --json '{
-  "statement": "SELECT COUNT(*) FROM silver_patient_master WHERE ssn_hash IS NOT NULL AND ssn IS NULL",
-  "warehouse_id": "<your_warehouse_id>"
-}'
-
-databricks api post /api/2.0/sql/statements --json '{
-  "statement": "SELECT AVG(data_quality_score) FROM silver_patient_master",
-  "warehouse_id": "<your_warehouse_id>"
-}'
-
-# Verify HIPAA compliance - no elderly patients with detailed age
-databricks api post /api/2.0/sql/statements --json '{
-  "statement": "SELECT COUNT(*) FROM silver_patient_master WHERE age_years > 89 AND age_years != 90",
-  "warehouse_id": "<your_warehouse_id>"
-}'
-
-# Expected: Pipeline completes successfully with expected patient counts and 99.5%+ data quality
-# Expected: Zero elderly patients with detailed age (HIPAA compliance)
-# If error: Check Databricks job logs and DLT event logs for clinical data validation issues
-```
-
-## Final validation Checklist
-- [ ] Asset Bundle validates: `databricks bundle validate --environment dev`
-- [ ] All tests pass: `python -m pytest tests/ -v`
-- [ ] HIPAA compliance tests pass: `python -m pytest tests/test_hipaa_compliance.py -v`
-- [ ] Pipeline deploys successfully: `databricks bundle deploy --environment dev`
-- [ ] Patient data pipeline run successful: Check Databricks UI for patient_data_medallion_pipeline
-- [ ] Patient data quality expectations met: 99.5%+ data quality score achieved
-- [ ] HIPAA de-identification working: No elderly patients with detailed age (>89 becomes 90)
-- [ ] No raw SSN in silver/gold layers: Only ssn_hash present
-- [ ] Change data feed enabled: Audit trail available for all patient tables
-- [ ] Performance within acceptable limits: <5 minute end-to-end latency
-- [ ] Observable pipeline metrics: Real-time monitoring and alerting functional
-- [ ] Clinical data validation: HL7 FHIR compliance and clinical range checks working
-- [ ] Documentation updated: README.md with healthcare compliance notes and pipeline comments
-
----
-
-## Anti-Patterns to Avoid
-- ❌ Don't use spark.read() directly in DLT tables - use dlt.read() for dependencies
-- ❌ Don't skip data quality expectations - they're critical for pipeline reliability
-- ❌ Don't hardcode paths or cluster configs - use Asset Bundle variables
-- ❌ Don't use display() in DLT functions - return DataFrames
-- ❌ Don't ignore DLT event logs when debugging - they contain crucial info
-- ❌ Don't mix streaming and batch patterns without understanding implications
-- ❌ Don't deploy directly to prod - always test in dev environment first
-### Context Engineering Anti-Patterns
-- ❌ Don't ignore temporal context - always track effective periods and version changes
-- ❌ Don't assume context is static - implement versioning and change tracking for evolving context  
-- ❌ Don't skip conflict resolution - multiple sources will have conflicting context that must be resolved
-- ❌ Don't ignore context quality - implement confidence scoring, completeness metrics, and validation
-- ❌ Don't flatten context relationships - preserve graph structures and relationship metadata in silver layer
-- ❌ Don't batch-process real-time context - use streaming for time-sensitive context with low latency requirements
-- ❌ Don't ignore context lineage - track context source, transformation history, and data provenance
-- ❌ Don't over-engineer entity resolution - start with simple matching before complex ML approaches
-- ❌ Don't skip context freshness validation - stale context can be worse than no context
-- ❌ Don't ignore context graph performance - index relationship tables and limit traversal depth
-- ❌ Don't mix context types in single tables - separate behavioral, demographic, and transactional context
-- ❌ Don't assume context completeness - handle missing context gracefully with default values
-- ❌ Don't ignore context privacy - implement proper PII handling and access controls for sensitive context
-- ❌ Don't skip context validation - validate context against business rules and referential integrity
-- ❌ Don't ignore context drift - monitor context distribution changes that may indicate data quality issues
-- ❌ Don't store raw SSN or other direct identifiers - always hash PII immediately upon ingestion
-- ❌ Don't use @dlt.expect_all_or_drop() for patient data - use @dlt.quarantine() to maintain audit trails
-- ❌ Don't assume MRNs are unique across healthcare systems - implement proper patient entity resolution
-- ❌ Don't ignore clinical data ranges - implement HL7 FHIR validation for lab values and vitals
-- ❌ Don't skip change data feed enablement - HIPAA requires audit trails for all patient data modifications
-- ❌ Don't hardcode clinical thresholds - use configurable parameters for age limits and clinical ranges
-- ❌ Don't process patient data without encryption - ensure Delta tables have encryption enabled
-- ❌ Don't ignore temporal clinical context - patient data must maintain point-in-time clinical accuracy
-- ❌ Don't deploy patient pipelines without HIPAA compliance testing and validation
 
 ## Domain Model: Health Insurance Patient Analytics
 
 ### Architecture Overview
 - **Medallion Architecture**: Bronze → Silver → Gold data transformation pipeline
 - **Delta Live Tables (DLT)**: Declarative pipelines with data quality expectations  
-- **Asset Bundle Deployment**: Infrastructure-as-code with serverless compute
 - **Context Engineering**: Multi-source context ingestion, resolution, and enrichment
 - **HIPAA Compliance**: Healthcare data governance and audit trails
-
-### Unity Catalog Structure
-```
-Catalog: {environment}_{user}  # e.g., dev_juan, prod_juan
-└── Schema: data_eng
-    ├── bronze_*     # Raw ingestion (patients, claims, medical_events)
-    ├── silver_*     # Cleaned & validated data
-    └── gold_*       # Analytics-ready dimensional model
-```
 
 ### Data Sources
 - **Health Insurance CSV Files**: Patient demographics, claims, medical events (Databricks Volumes)
@@ -1178,10 +873,6 @@ Health Insurance Domain: Patient Analytics (EXACTLY 3 ENTITIES)
 ### Project Structure
 ```
 healthcare-ldp-medallion/
-├── databricks.yml              # Asset Bundle configuration
-├── resources/
-│   ├── pipelines.yml          # DLT pipeline definitions  
-│   └── jobs.yml               # Data generation and monitoring jobs
 ├── src/
 │   ├── pipelines/
 │   │   ├── bronze/            # Raw data ingestion (3 tables)
@@ -1287,7 +978,6 @@ MEDICAL_EVENTS_SCHEMA = StructType([
 1. **Exactly 3 entities**: Patients, Claims, Medical_Events (no additional entities)
 2. **Referential integrity**: All claims/medical_events must reference valid patient_id
 3. **HIPAA compliance**: PII hashing, audit trails, data quality quarantine 
-4. **Asset Bundle deployment**: Infrastructure-as-code with serverless compute
 5. **Context engineering**: Multi-source ingestion, resolution, enrichment patterns
 
 ### Data Quality Patterns
@@ -1313,12 +1003,35 @@ def silver_patients():
 5. **Gold Layer**: Dimensional modeling with fact/dimension tables
 6. **Context Engineering**: Multi-source context processing and quality monitoring
 
-## References
+## Anti-Patterns to Avoid
 
-- **Primary documentation**: See `CLAUDE.md` for complete Databricks patterns and Asset Bundle configurations
-- **Healthcare compliance**: HL7 FHIR standards, HIPAA requirements
-- **Context engineering**: MCP servers for additional examples and patterns
-
----
-
-*Modern health insurance data platform using Databricks medallion architecture with context engineering and HIPAA compliance.*
+- ❌ Don't use spark.read() directly in DLT tables - use dlt.read() for dependencies
+- ❌ Don't skip data quality expectations - they're critical for pipeline reliability
+- ❌ Don't use display() in DLT functions - return DataFrames
+- ❌ Don't ignore DLT event logs when debugging - they contain crucial info
+- ❌ Don't mix streaming and batch patterns without understanding implications
+- ❌ Don't deploy directly to prod - always test in dev environment first
+- ❌ Don't ignore temporal context - always track effective periods and version changes
+- ❌ Don't assume context is static - implement versioning and change tracking for evolving context  
+- ❌ Don't skip conflict resolution - multiple sources will have conflicting context that must be resolved
+- ❌ Don't ignore context quality - implement confidence scoring, completeness metrics, and validation
+- ❌ Don't flatten context relationships - preserve graph structures and relationship metadata in silver layer
+- ❌ Don't batch-process real-time context - use streaming for time-sensitive context with low latency requirements
+- ❌ Don't ignore context lineage - track context source, transformation history, and data provenance
+- ❌ Don't over-engineer entity resolution - start with simple matching before complex ML approaches
+- ❌ Don't skip context freshness validation - stale context can be worse than no context
+- ❌ Don't ignore context graph performance - index relationship tables and limit traversal depth
+- ❌ Don't mix context types in single tables - separate behavioral, demographic, and transactional context
+- ❌ Don't assume context completeness - handle missing context gracefully with default values
+- ❌ Don't ignore context privacy - implement proper PII handling and access controls for sensitive context
+- ❌ Don't skip context validation - validate context against business rules and referential integrity
+- ❌ Don't ignore context drift - monitor context distribution changes that may indicate data quality issues
+- ❌ Don't store raw SSN or other direct identifiers - always hash PII immediately upon ingestion
+- ❌ Don't use @dlt.expect_all_or_drop() for patient data - use @dlt.quarantine() to maintain audit trails
+- ❌ Don't assume MRNs are unique across healthcare systems - implement proper patient entity resolution
+- ❌ Don't ignore clinical data ranges - implement HL7 FHIR validation for lab values and vitals
+- ❌ Don't skip change data feed enablement - HIPAA requires audit trails for all patient data modifications
+- ❌ Don't hardcode clinical thresholds - use configurable parameters for age limits and clinical ranges
+- ❌ Don't process patient data without encryption - ensure Delta tables have encryption enabled
+- ❌ Don't ignore temporal clinical context - patient data must maintain point-in-time clinical accuracy
+- ❌ Don't deploy patient pipelines without HIPAA compliance testing and validation
