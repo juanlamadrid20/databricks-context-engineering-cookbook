@@ -269,22 +269,6 @@ VOLUMES_PATH = spark.conf.get("VOLUMES_PATH", "/Volumes/juan_dev/data_eng/raw_da
 MAX_FILES_PER_TRIGGER = spark.conf.get("MAX_FILES_PER_TRIGGER", "100")
 ```
 
-#### Critical Path Handling Pattern
-```python
-# CRITICAL: Include this pattern in all pipeline files
-try:
-    notebook_path = dbutils.notebook.entry_point.getDbutils().notebook().getContext().notebookPath().get()
-    base_path = "/".join(notebook_path.split("/")[:-2])
-    sys.path.insert(0, f"{base_path}/src")
-except:
-    # Fallback to multiple common paths
-    possible_paths = ["/Workspace/src", "/databricks/driver/src", "/repos/src"]
-    for path in possible_paths:
-        if os.path.exists(path):
-            sys.path.insert(0, path)
-            break
-```
-
 ### DLT Pipeline Patterns
 
 #### Critical Autoloader Pattern for DLT Streaming
