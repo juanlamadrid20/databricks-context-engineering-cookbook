@@ -20,44 +20,45 @@ This is a Databricks data engineering project template implementing a medallion 
 ### External Documentation Hub
 Use these documentation sources as the single source of truth for all development activities:
 
-```yaml
-# Primary Databricks Documentation
-databricks_core:
-  asset_bundles:
-    - url: https://docs.databricks.com/dev-tools/bundles/index.html
-      usage: "Asset Bundle configuration, deployment patterns, and environment management"
-    - url: https://docs.databricks.com/dev-tools/cli/bundle-cli.html
-      usage: "Asset Bundle CLI commands and workflow automation"
-      
-  delta_live_tables:
-    - url: https://docs.databricks.com/workflows/delta-live-tables/delta-live-tables-python-ref.html
-      usage: "DLT decorators (@dlt.table, @dlt.expect_*), streaming tables, and pipeline patterns"
-    - url: https://docs.databricks.com/workflows/delta-live-tables/delta-live-tables-expectations.html
-      usage: "Data quality expectations, quarantine patterns, and validation strategies"
-    - url: https://docs.databricks.com/workflows/delta-live-tables/index.html
-      usage: "General DLT concepts, medallion architecture, and best practices"
-      
-  unity_catalog:
-    - url: https://docs.databricks.com/data-governance/unity-catalog/best-practices.html
-      usage: "Three-part naming conventions, governance patterns, and PII handling"
-    - url: https://docs.databricks.com/data-governance/unity-catalog/index.html
-      usage: "Unity Catalog setup, permissions, and data governance framework"
-      
-  performance_optimization:
-    - url: https://docs.databricks.com/delta/optimize.html
-      usage: "Delta Lake optimization, Z-ordering, and liquid clustering strategies"
-    - url: https://docs.databricks.com/workflows/delta-live-tables/delta-live-tables-performance.html
-      usage: "DLT pipeline performance tuning and scaling best practices"
+### Documentation & References
 
-# Platform Documentation  
-platform_docs:
-  delta_lake:
-    - url: https://docs.delta.io/
-      usage: "Delta Lake core concepts, ACID transactions, and time travel"
-  medallion_architecture:
-    - url: https://www.databricks.com/glossary/medallion-architecture
-      usage: "Bronze-Silver-Gold architecture patterns and implementation strategies"
-```
+```yaml
+- url: https://docs.databricks.com
+  why: "Databricks Specific Features and Documentation"
+
+- url: https://docs.databricks.com/workflows/delta-live-tables/delta-live-tables-python-ref.html
+  why: "Lakeflow Declarative Pipline Syntax, decorators (@dlt.table, @dlt.expect_*), streaming tables, and pipeline patterns"
+
+- url: https://docs.databricks.com/workflows/delta-live-tables/delta-live-tables-python-ref.html
+  why: "Lakeflow Declarative Pipline Syntax, decorators (@dlt.table, @dlt.expect_*), streaming tables, and pipeline patterns"
+
+- url: https://databrickslabs.github.io/dbldatagen/public_docs/index.html
+  why: "For synthetic data generation, examples, and pattern to use for the Medallion Framework"
+
+- url: https://docs.databricks.com/workflows/delta-live-tables/delta-live-tables-expectations.html
+  why: "Data quality expectations, quarantine patterns, and validation strategies for Lakeflow Declarative Pipelines"
+
+- url: https://docs.databricks.com/workflows/delta-live-tables/index.html
+  why: "General LDP concepts, medallion architecture, and best practices"
+
+- url: https://docs.databricks.com/data-governance/unity-catalog/best-practices.html
+  why: "Three-part naming conventions, governance patterns, and PII handling"
+
+- url: https://docs.databricks.com/data-governance/unity-catalog/index.html
+  why: "Unity Catalog setup, permissions, and data governance framework"
+
+- url: https://docs.databricks.com/delta/optimize.html
+  why: "Delta Lake optimization, Z-ordering, and liquid clustering strategies"
+
+- url: https://docs.databricks.com/workflows/delta-live-tables/delta-live-tables-performance.html
+  why: "LDP pipeline performance tuning and scaling best practices"
+
+- url: https://docs.delta.io/
+  why: "Delta Lake core concepts, ACID transactions, and time travel"
+
+- url: https://www.databricks.com/glossary/medallion-architecture
+  why: "Bronze-Silver-Gold architecture patterns and implementation strategies"
+
 
 ### Reference Usage Guidelines
 - **For PRPs**: Reference this section instead of duplicating URLs in individual PRP files
@@ -105,6 +106,7 @@ databricks jobs run-now --job-id <pipeline_name>
 
 
 #### Comprehensive Root `databricks.yml` Template
+
 ```yaml
 bundle:
   name: health-insurance-patient-pipeline
