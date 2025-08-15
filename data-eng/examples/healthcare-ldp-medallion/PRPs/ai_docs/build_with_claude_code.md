@@ -573,3 +573,27 @@ The Claude Code SDK enables powerful integrations with your development workflow
 - [CLI usage and controls](/en/docs/claude-code/cli-reference) - Complete CLI documentation
 - [GitHub Actions integration](/en/docs/claude-code/github-actions) - Automate your GitHub workflow with Claude
 - [Common workflows](/en/docs/claude-code/common-workflows) - Step-by-step guides for common use cases
+
+## Claude Code Tools Reference
+
+Claude Code has access to various tools. Here are the most commonly used ones:
+
+| Tool         | Description                                          | Permission Required |
+| ------------ | ---------------------------------------------------- | ------------------- |
+| Agent        | Runs a sub-agent to handle complex, multi-step tasks | No                  |
+| Bash         | Executes shell commands in your environment          | Yes                 |
+| Glob         | Finds files based on pattern matching                | No                  |
+| Grep         | Searches for patterns in file contents               | No                  |
+| LS           | Lists files and directories                          | No                  |
+| Read         | Reads the contents of files                          | No                  |
+| Edit         | Makes targeted edits to specific files               | Yes                 |
+| MultiEdit    | Makes targeted edits to multiple files               | Yes                 |
+| Write        | Creates or overwrites files                          | Yes                 |
+| NotebookEdit | Modifies Jupyter notebook cells                      | Yes                 |
+| NotebookRead | Reads and displays Jupyter notebook contents         | No                  |
+| WebFetch     | Fetches content from a specified URL                 | Yes                 |
+| WebSearch    | Searches the web for information                     | Yes                 |
+| TodoRead     | Reads todo files                                     | No                  |
+| TodoWrite    | Writes to todo files                                 | Yes                 |
+
+Permission rules can be configured using /allowed-tools or in permission settings.
