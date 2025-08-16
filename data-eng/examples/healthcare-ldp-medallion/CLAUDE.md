@@ -148,19 +148,19 @@ targets:
   dev:
     mode: development
     variables:
-      catalog: "juan_dev"
-      schema: "data_eng"
+      catalog: "{catalog_name}"
+      schema: "{schema_name}"
       environment: "dev"
-      volumes_path: "/Volumes/juan_dev/data_eng/raw_data"
+      volumes_path: "/Volumes/{catalog_name}/{schema_name}/raw_data"
       max_files_per_trigger: 50
       
   prod:
     mode: production
     variables:
-      catalog: "juan_prod"
-      schema: "data_eng" 
+      catalog: "{catalog_name}"
+      schema: "{schema_name}"
       environment: "prod"
-      volumes_path: "/Volumes/juan_prod/data_eng/raw_data"
+      volumes_path: "/Volumes/{catalog_name}/{schema_name}/raw_data"
       max_files_per_trigger: 200
 ```
 
@@ -267,10 +267,10 @@ resources:
 #### Pipeline Configuration Pattern
 ```python
 # Environment-aware configuration loading - CRITICAL pattern for all pipeline files
-CATALOG = spark.conf.get("CATALOG", "juan_dev")
-SCHEMA = spark.conf.get("SCHEMA", "data_eng")
-PIPELINE_ENV = spark.conf.get("PIPELINE_ENV", "dev")
-VOLUMES_PATH = spark.conf.get("VOLUMES_PATH", "/Volumes/juan_dev/data_eng/raw_data")
+CATALOG = spark.conf.get("CATALOG", "{catalog_name}")
+SCHEMA = spark.conf.get("SCHEMA", "{schema_name}")
+PIPELINE_ENV = spark.conf.get("PIPELINE_ENV", "{sdlc_env}")
+VOLUMES_PATH = spark.conf.get("VOLUMES_PATH", "/Volumes/{catalog_name}/{schema_name}/raw_data")
 MAX_FILES_PER_TRIGGER = spark.conf.get("MAX_FILES_PER_TRIGGER", "100")
 ```
 

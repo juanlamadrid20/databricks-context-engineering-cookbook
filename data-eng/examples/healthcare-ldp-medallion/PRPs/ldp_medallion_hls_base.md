@@ -144,24 +144,6 @@ tests/
 ```
 ## ARCHITECTURE
 
-### Unity Catalog Governance Structure
-```
-Production Hierarchy:
-├── juan_prod
-│   └── data_eng              # Single schema for all layers
-│       ├── bronze_*          # Raw patient data tables
-│       ├── silver_*          # Cleaned patient data tables
-│       └── gold_*           # Analytics-ready patient tables
-
-Development Hierarchy:
-├── juan_dev
-│   └── data_eng              # Single schema for all layers
-│       ├── bronze_*          # Raw patient data tables
-│       ├── silver_*          # Cleaned patient data tables
-│       └── gold_*           # Analytics-ready patient tables
-```
-
-
 ## Implementation Blueprint
 
 ### Context-Aware Data Models and Structure
@@ -1055,6 +1037,7 @@ databricks api post /api/2.0/sql/statements --json '{
 - ❌ Don't ignore DLT event logs when debugging - they contain crucial info
 - ❌ Don't mix streaming and batch patterns without understanding implications
 - ❌ Don't deploy directly to prod - always test in dev environment first
+
 ### Context Engineering Anti-Patterns
 - ❌ Don't ignore temporal context - always track effective periods and version changes
 - ❌ Don't assume context is static - implement versioning and change tracking for evolving context  
