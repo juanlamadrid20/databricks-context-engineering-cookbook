@@ -560,7 +560,6 @@ def gold_daily_summary():
 ### Planning Process
 Before implementing features:
 1. Create a PRP using templates in `PRPs/templates/prp_base.md`
-2. Review `INITIAL.md` for project-specific requirements and patterns
 3. Use the comprehensive PRP template which includes validation loops and context requirements
 4. Follow the Asset Bundle deployment workflow
 
