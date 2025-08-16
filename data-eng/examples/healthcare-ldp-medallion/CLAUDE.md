@@ -274,6 +274,33 @@ VOLUMES_PATH = spark.conf.get("VOLUMES_PATH", "/Volumes/{catalog_name}/{schema_n
 MAX_FILES_PER_TRIGGER = spark.conf.get("MAX_FILES_PER_TRIGGER", "100")
 ```
 
+#### ❌ FORBIDDEN PATH HANDLING ANTI-PATTERNS (NEVER CREATE THESE)
+```python
+# ❌ NEVER: Complex path resolution code in DLT pipelines
+# ❌ NEVER: dbutils.notebook.entry_point resolution attempts
+# ❌ NEVER: sys.path manipulation in pipeline files
+# ❌ NEVER: Multiple fallback path attempts with try/except blocks
+
+# WRONG EXAMPLE - DO NOT USE:
+try:
+    notebook_path = dbutils.notebook.entry_point.getDbutils().notebook().getContext().notebookPath().get()
+    base_path = "/".join(notebook_path.split("/")[:-3])
+    sys.path.insert(0, f"{base_path}/src")
+except Exception as e1:
+    try:
+        current_path = os.path.dirname(os.path.abspath(__file__))
+        # ... more complex path handling
+    except Exception as e2:
+        # ... fallback paths
+        pass
+
+# ✅ CORRECT: Simple imports work in Databricks DLT
+from shared.healthcare_schemas import HealthcareSchemas
+from shared.healthcare_utils import PipelineUtilities
+```
+
+**Path Handling Rule**: DLT pipelines should use simple imports. Asset Bundle deployment ensures proper module resolution.
+
 ### DLT Pipeline Patterns
 
 #### Critical Autoloader Pattern for DLT Streaming
@@ -531,7 +558,7 @@ def gold_daily_summary():
 16. **DLT Dependencies**: Use `dlt.read()` and `dlt.read_stream()` for dependencies, never `spark.read()`
 17. **Data Quality**: Include multi-level `@dlt.expect_*` decorators on all tables
 18. **Schema Enforcement**: Define explicit schemas for bronze layer ingestion
-19. **Path Handling**: Include comprehensive path resolution in pipeline files
+19. **Simple Imports**: Use standard Python imports - NO complex path resolution needed
 20. **PII Handling**: Mark PII fields in table properties for governance compliance
 21. **Change Data Capture**: Enable CDC on gold tables with `delta.enableChangeDataFeed`
 
@@ -549,6 +576,7 @@ def gold_daily_summary():
 **🚨 CRITICAL REMINDERS**
 - **SERVERLESS ONLY**: Never create cluster configurations - all pipelines/jobs use serverless compute
 - **NO AGGREGATE EXPECTATIONS**: Move aggregate checks to separate metrics tables
+- **NO COMPLEX PATH HANDLING**: DLT pipelines use simple imports - never add dbutils path resolution code
 
 #### Asset Bundle Configuration Pitfalls
 - **Using cluster configurations** - NEVER create job_clusters, new_cluster, or clusters sections (MUST use serverless only)
@@ -556,7 +584,7 @@ def gold_daily_summary():
 - **Missing environment separation** in Asset Bundle configuration
 - **Hard-coding workspace URLs** or environment-specific values in databricks.yml
 - **Creating unused utility modules** - prefer Asset Bundle variables + `spark.conf.get()` pattern
-- **Missing path handling** in pipeline files - include comprehensive path resolution
+- **Adding complex path handling** in pipeline files - DLT pipelines use simple imports, no path resolution needed
 - **Missing resource dependencies** in Asset Bundle configuration
 - **Not using variable defaults** in Asset Bundle configuration
 - **Hardcoding values** that should be Asset Bundle variables
