@@ -317,19 +317,6 @@ CATALOG = spark.conf.get("bundle.target.catalog", "default_catalog")
 SCHEMA = spark.conf.get("bundle.target.schema", "default_schema")
 PIPELINE_ENV = spark.conf.get("bundle.target.name", "dev")
 
-# Critical path handling pattern (include in all pipeline files)
-try:
-    notebook_path = dbutils.notebook.entry_point.getDbutils().notebook().getContext().notebookPath().get()
-    base_path = "/".join(notebook_path.split("/")[:-2])
-    sys.path.insert(0, f"{base_path}/src")
-except:
-    # Fallback to multiple common paths
-    possible_paths = ["/Workspace/src", "/databricks/driver/src", "/repos/src"]
-    for path in possible_paths:
-        if os.path.exists(path):
-            sys.path.insert(0, path)
-            break
-
 # Bronze layer with schema enforcement and cloud files
 @dlt.table(
     name="bronze_events",  # CORRECT: Simple table name - catalog/schema specified at pipeline level
