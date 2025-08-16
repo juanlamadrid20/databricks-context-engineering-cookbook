@@ -557,12 +557,6 @@ def gold_daily_summary():
 2. **Autoloader Format**: When using `cloudFiles` with DLT streaming, you MUST include `.format("cloudFiles")`
    - Missing this pattern causes pipeline failures and performance issues
 
-### Planning Process
-Before implementing features:
-1. Create a PRP using templates in `PRPs/templates/prp_base.md`
-3. Use the comprehensive PRP template which includes validation loops and context requirements
-4. Follow the Asset Bundle deployment workflow
-
 ### Common Pitfalls to Avoid
 
 **🚨 CRITICAL REMINDERS**
