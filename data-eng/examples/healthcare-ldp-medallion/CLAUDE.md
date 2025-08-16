@@ -4,9 +4,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a Databricks data engineering project template implementing a medallion architecture (Bronze → Silver → Gold) using Declarative Pipelines (Delta Live Tables/DLT) and Databricks Asset Bundles for deployment management.
+This is a Databricks data engineering project template implementing a medallion architecture (Bronze → Silver → Gold) using Declarative Pipelines (Delta Live Tables/DLT) and Databricks Asset Bundles for deployment management. This project follows This is a **PRP (Product Requirement Prompt) Framework**, not a traditional software project. The core concept: **"PRP = PRD + curated codebase intelligence + agent/runbook"** - designed to enable AI agents to ship production-ready code on the first pass.
 
-## Core Principles
+### AI Documentation Curation
+
+- `PRPs/ai_docs/` contains curated Claude Code documentation for context injection
+- `claude_md_files/` provides framework-specific CLAUDE.md examples
+
+## Critical Success Patterns
+
+### PRP Methodology and Core Principles
 1. **Context is King**: Include ALL necessary documentation, examples, and caveats
 2. **Validation Loops**: Provide executable tests/lints the AI can run and fix
 3. **Information Dense**: Use keywords and patterns from the Databricks ecosystem
@@ -14,15 +21,32 @@ This is a Databricks data engineering project template implementing a medallion 
 5. **Global rules**: Be sure to follow all rules in CLAUDE.md
 6. **Asset Bundle First**: All infrastructure should be managed through Databricks Asset Bundles
 
+### PRP Structure Requirements
 
-## Consolidated Documentation References
+- **Goal**: Specific end state and desires
+- **Why**: Business value and user impact
+- **What**: User-visible behavior and technical requirements
+- **All Needed Context**: Documentation URLs, code examples, gotchas, patterns
+- **Implementation Blueprint**: Pseudocode with critical details and task lists
+- **Validation Loop**: Executable commands for syntax, tests, integration
 
-### External Documentation Hub
-Use these documentation sources as the single source of truth for all development activities:
+### Key Claude Commands
 
-### Documentation & References
+- `/prp-base-create` - Generate comprehensive PRPs with research
+- `/prp-base-execute` - Execute PRPs against codebase
+
+### When Executing PRPs
+
+1. **Load PRP**: Read and understand all context and requirements
+2. **ULTRATHINK**: Create comprehensive plan, break down into todos, use subagents, batch tool etc check prps/ai_docs/
+3. **Execute**: Implement following the blueprint
+4. **Validate**: Run each validation command, fix failures
+5. **Complete**: Ensure all checklist items done
+
+## Documentation & References
 
 ```yaml
+# MUST READ - Include these in your context window
 - url: https://docs.databricks.com
   why: "Databricks Specific Features and Documentation"
 
@@ -58,12 +82,7 @@ Use these documentation sources as the single source of truth for all developmen
 
 - url: https://www.databricks.com/glossary/medallion-architecture
   why: "Bronze-Silver-Gold architecture patterns and implementation strategies"
-
-
-### Reference Usage Guidelines
-- **For PRPs**: Reference this section instead of duplicating URLs in individual PRP files
-- **For Implementation**: Use as single source for all Databricks documentation links
-- **For Context Engineering**: Combine with domain-specific documentation in PRPs as needed
+```
 
 ## Key Commands
 
@@ -104,31 +123,24 @@ databricks jobs run-now --job-id <pipeline_name>
 
 ### Asset Bundle Management - Single Source of Truth
 
-
 #### Comprehensive Root `databricks.yml` Template
 
 ```yaml
 bundle:
   name: health-insurance-patient-pipeline
-  
 variables:
   catalog:
     description: "Unity Catalog name"
-    
   schema:
     description: "Schema name within catalog"
     default: "data_eng"
-    
   environment:
     description: "Environment identifier (dev/prod)"
-    
   volumes_path:
     description: "Path to Databricks Volumes for CSV ingestion"
-    
   max_files_per_trigger:
     description: "Auto Loader performance tuning"
     default: 100
-
 include:
   - resources/*.yml
 
@@ -185,7 +197,6 @@ resources:
             path: ../<relative_path>/gold/patient_360_dimension.py
             
       configuration:
-        "bundle.sourcePath": "/Workspace${workspace.file_path}/src"
         "CATALOG": "${var.catalog}"
         "SCHEMA": "${var.schema}"
         "PIPELINE_ENV": "${var.environment}"
@@ -198,7 +209,6 @@ resources:
         "compliance": "HIPAA"
         "data_classification": "PHI"
         "environment": "${var.environment}"
-        
       # Continuous processing for healthcare workloads  
       continuous: false
 ```
@@ -211,7 +221,6 @@ resources:
     example_job:
       name: "job-name-${var.environment}"
       # ✅ CORRECT: NO cluster configuration = serverless by default
-      
       tasks:
         - task_key: "task_name"
           # ✅ CORRECT: No compute_key or cluster references
@@ -220,7 +229,6 @@ resources:
             base_parameters:
               catalog: "${var.catalog}"
               schema: "${var.schema}"
-          
         - task_key: "another_task"
           python_wheel_task:
             package_name: "my_package"
@@ -236,30 +244,25 @@ resources:
   jobs:
     forbidden_job_example:
       name: "bad-example"
-      
       # ❌ NEVER: job_clusters section
       job_clusters:
         - job_cluster_key: "any_key"
           new_cluster:
             spark_version: "any_version"
             node_type_id: "any_type"
-            
       # ❌ NEVER: new_cluster section at job level
       new_cluster:
         spark_version: "any_version"
         node_type_id: "any_type"
         num_workers: 2
-        
       # ❌ NEVER: existing_cluster_id reference
       existing_cluster_id: "cluster-id"
-      
       # ❌ NEVER: compute specifications in tasks
       tasks:
         - task_key: "bad_task"
           existing_cluster_id: "cluster-id"  # FORBIDDEN
           job_cluster_key: "cluster_key"      # FORBIDDEN
 ```
-
 
 #### Pipeline Configuration Pattern
 ```python
@@ -641,10 +644,10 @@ databricks pipelines get <pipeline_id>
 
 ## Key Files
 
-- `INITIAL.md` - Comprehensive project documentation and setup guide
 - `PRPs/prp_base.md` - Template for systematic feature planning
 - `databricks.yml` - Asset Bundle configuration (to be created)
 - `resources/pipelines.yml` - Pipeline resource definitions (to be created)
+
 - Pipeline files should return DataFrames and use DLT decorators properly
 
 This project emphasizes modern data engineering practices using Databricks platform capabilities with enterprise-grade deployment management through Asset Bundles. 
