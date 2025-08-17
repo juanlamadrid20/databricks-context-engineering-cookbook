@@ -1,2 +1,4 @@
 .DS_Store
 *.pyc
+data-eng/examples/healthcare-ldp-medallion/.mcp.json
+data-eng/examples/healthcare-ldp-medallion/.claude/settings.local.json
