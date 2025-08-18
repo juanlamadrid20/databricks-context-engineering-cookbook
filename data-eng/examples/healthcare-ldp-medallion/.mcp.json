@@ -17,13 +17,6 @@
       "command": "npx",
       "args": ["mcp-remote", "https://gitmcp.io/databricks/databricks-sdk-py"]
     },
-    "databricks-blog": {
-      "command": "npx",
-      "args": [
-        "mcp-remote",
-        "https://gitmcp.io/databricks-solutions/databricks-blogposts"
-      ]
-    },
     "databricks-ctx-eng": {
       "command": "npx",
       "args": [
