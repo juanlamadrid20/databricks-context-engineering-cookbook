@@ -35,7 +35,7 @@
       "Read(src/**)",
       "Read(~/.config/zsh/.zshrc)"
     ],
-    "deny": ["Bash(rm:*)", "Bash(curl:*)", "Bash(git push:*)"]
+    "deny": ["Bash(rm:*)", "Bash(curl:*)", "Bash(git push:*)", "Read(eda/**)"]
   },
   "enableAllProjectMcpServers": true,
   "statusLine": {
