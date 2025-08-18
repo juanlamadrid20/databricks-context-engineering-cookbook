@@ -650,12 +650,10 @@ databricks pipelines list-pipelines --filter "name LIKE '%<pipeline_name>%'"
 databricks pipelines get <pipeline_id>
 ```
 
-## Key Files
-
-- `PRPs/prp_base.md` - Template for systematic feature planning
-- `databricks.yml` - Asset Bundle configuration (to be created)
-- `resources/pipelines.yml` - Pipeline resource definitions (to be created)
-
 - Pipeline files should return DataFrames and use DLT decorators properly
 
 This project emphasizes modern data engineering practices using Databricks platform capabilities with enterprise-grade deployment management through Asset Bundles. 
+
+## Additional Instructions
+
+Reference @data-eng/examples/healthcare-ldp-medallion/claude_md_files/CLAUDE-PYTHON-BASIC.md for guidance when working with Python code in this repository.
