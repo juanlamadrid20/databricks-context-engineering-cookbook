@@ -76,9 +76,6 @@ context_graph_structure:
 - url: https://www.hipaajournal.com/hipaa-compliance-checklist/
   why: HIPAA compliance requirements for patient data handling, encryption, and audit logging
 
-- docfile: PRPs/ai_docs/healthcare_data_governance.md
-  why: Healthcare-specific data governance, patient privacy, and clinical data validation requirements
-
 ```
 
 ### Current Codebase tree (run `tree` in the root of the project) to get an overview of the codebase
@@ -94,7 +91,7 @@ dbrx-ctxeng-de/
   - README.md
 ```
 
-### Desired Codebase tree with files to be added and responsibility of file
+### This is a reference example of codebase tree with files to be added and responsibility of file. 
 ```bash
 # Patient Data Medallion Pipeline Structure:
 src/
@@ -272,13 +269,11 @@ MODIFY databricks.yml:
 
 CREATE src/pipelines/bronze/patient_ehr_ingestion.py:
   - IMPLEMENT EHR patient data ingestion with FHIR validation
-  - USE @dlt.streaming_table() decorators for real-time patient updates
   - IMPLEMENT data quality expectations for patient_data_validation_rules with quarantine
   - ENABLE Delta change data feed for audit compliance
 
 CREATE src/pipelines/bronze/patient_adt_ingestion.py:
   - IMPLEMENT ADT (Admit/Discharge/Transfer) event streaming
-  - USE @dlt.streaming_table() for real-time admission events
   - IMPLEMENT clinical validation rules for encounter data
 
 CREATE src/pipelines/bronze/patient_lab_ingestion.py:
@@ -408,7 +403,7 @@ def bronze_patient_ehr() -> DataFrame:
         spark.readStream
         .option("cloudFiles.format", "json")  # Common EHR export format
         .option("cloudFiles.schemaLocation", "/mnt/healthcare/schemas/patient_ehr")
-        .option("cloudFiles.schemaEvolution", "true")  # Handle EHR schema changes
+        .option("cloudFiles.schemaEvolutionMode", "rescue")  # Handle EHR schema changes
         .schema(schema)
         .load("/mnt/healthcare/raw/ehr/patients")
         .withColumn("_ingested_at", current_timestamp())
@@ -507,12 +502,12 @@ from pyspark.sql.functions import current_timestamp, col, when, lit, hash, row_n
 from pyspark.sql.window import Window
 
 @dlt.table(
-    name="bronze_context_**<TODO: your_context_type>**",
+    name="bronze_context_patient_clinical",  # Healthcare patient clinical context
     comment="Raw context data with temporal tracking and conflict detection",
     table_properties={
         "quality": "bronze",
         "pipelines.autoOptimize.managed": "true",
-        "context.domain": "**<TODO: your_context_domain>**"
+        "context.domain": "patient_healthcare"  # Healthcare domain for patient clinical context
     }
 )
 @dlt.expect_all_or_drop({
@@ -527,15 +522,14 @@ from pyspark.sql.window import Window
 })
 def bronze_context_ingestion():
     """Pattern: Handle multiple context sources with schema evolution and deduplication"""
-    schema = **<TODO: your_context_schema>**  # Use CONTEXT_SCHEMA or domain-specific schema
+    schema = PATIENT_CONTEXT_SCHEMA  # Use healthcare-specific patient context schema from implementation blueprint
     
     return (
         spark.readStream
-        .option("cloudFiles.format", "**<TODO: your_context_format>**")
-        .option("cloudFiles.schemaEvolution", "true")
-        .option("cloudFiles.inferColumnTypes", "false")
+        .option("cloudFiles.format", "csv")  # Healthcare data commonly ingested as CSV from EHR systems
+        .option("cloudFiles.schemaEvolutionMode", "rescue")
         .schema(schema)
-        .load("**<TODO: context_source_path>**")
+        .load(f"{VOLUMES_PATH}/patient_context")  # Healthcare data from Databricks Volumes
         .withColumn("ingested_at", current_timestamp())
         .withColumn("version", monotonically_increasing_id())
         .withColumn("context_hash", hash(col("context_data")))  # For deduplication
@@ -552,9 +546,9 @@ def bronze_context_ingestion():
     }
 )
 @dlt.expect_all({
-    "context_completeness": "COUNT(*) >= **<TODO: minimum_context_count>**",
+    "context_completeness": "COUNT(*) >= 100",  # Minimum patient contexts for statistical significance in healthcare
     "temporal_consistency": "effective_from <= effective_to OR effective_to IS NULL",
-    "confidence_threshold": "confidence_score >= **<TODO: minimum_confidence_threshold>**"
+    "confidence_threshold": "confidence_score >= 0.85"  # High confidence threshold required for healthcare/clinical decisions
 })
 @dlt.expect_or_fail({
     "no_duplicate_contexts": "COUNT(*) = COUNT(DISTINCT context_id)",
@@ -562,7 +556,7 @@ def bronze_context_ingestion():
 })
 def context_resolution():
     """Pattern: Resolve entity context with confidence scoring and conflict resolution"""
-    bronze_contexts = dlt.read("bronze_context_**<TODO: your_context_type>**")
+    bronze_contexts = dlt.read("bronze_context_patient_clinical")  # Healthcare patient clinical context
     
     # Window for temporal conflict resolution
     temporal_window = Window.partitionBy("entity_id", "context_type").orderBy("effective_from", "confidence_score")
@@ -571,11 +565,14 @@ def context_resolution():
         bronze_contexts
         # Calculate confidence scores based on source reliability and data completeness
         .withColumn("source_confidence_score", 
-                   when(col("source_system").isin(**<TODO: trusted_sources>**), 0.9)
-                   .when(col("source_system").isin(**<TODO: known_sources>**), 0.7)
+                   when(col("source_system").isin(["EHR_SYSTEM", "ADT_SYSTEM"]), 0.9)  # Trusted healthcare source systems
+                   .when(col("source_system").isin(["LAB_SYSTEM", "PHARMACY_SYSTEM"]), 0.7)  # Known healthcare source systems
                    .otherwise(0.5))
         .withColumn("completeness_score",
-                   **<TODO: your_completeness_calculation>**)  # Based on non-null context_data fields
+                   (when(col("context_data.patient_id").isNotNull(), 0.25).otherwise(0) + 
+                   when(col("context_data.medical_record_number").isNotNull(), 0.25).otherwise(0) + 
+                   when(col("context_data.diagnosis_code").isNotNull(), 0.25).otherwise(0) + 
+                   when(col("context_data.care_provider").isNotNull(), 0.25).otherwise(0)))  # Healthcare context completeness
         .withColumn("calculated_confidence",
                    (col("source_confidence_score") * 0.6 + col("completeness_score") * 0.4))
         
@@ -585,7 +582,9 @@ def context_resolution():
         
         # Implement entity resolution
         .withColumn("canonical_entity_id", 
-                   **<TODO: your_entity_resolution_function>**)  # Could be fuzzy matching, ML model, etc.
+                   when(col("context_data.medical_record_number").isNotNull(), 
+                   concat(lit("MRN_"), col("context_data.medical_record_number")))
+                   .otherwise(col("entity_id")))  # Healthcare entity resolution using MRN
         
         # Update final confidence score
         .withColumn("final_confidence_score", 
@@ -703,11 +702,11 @@ def context_analytics():
         
         # Context quality dimensions
         .withColumn("is_high_quality", 
-                   col("confidence_score") >= **<TODO: your_quality_threshold>**)
+                   col("confidence_score") >= 0.90)  # Healthcare quality threshold
         .withColumn("is_well_connected",
-                   col("relationship_count") >= **<TODO: your_connectivity_threshold>**)
+                   col("relationship_count") >= 2)  # Healthcare connectivity threshold (care coordination)
         .withColumn("is_fresh",
-                   col("context_age_hours") <= **<TODO: your_freshness_threshold>**)
+                   col("context_age_hours") <= 4)  # Healthcare freshness threshold (4 hours for clinical context)
         
         .groupBy("entity_type", "context_type", "date_partition", "hour_partition")
         .agg(
@@ -720,7 +719,12 @@ def context_analytics():
             avg("relationship_count").alias("avg_relationships"),
             max("confidence_score").alias("max_confidence"),
             min("confidence_score").alias("min_confidence"),
-            **<TODO: your_context_specific_business_metrics>**
+            avg(when(col("context_data.clinical_outcome_score").isNotNull(), 
+                col("context_data.clinical_outcome_score").cast("double")).otherwise(0)).alias("avg_clinical_outcomes"),
+            sum(when(col("context_data.emergency_visit") == "true", 1).otherwise(0)).alias("emergency_contexts"),
+            countDistinct(when(col("context_data.care_provider").isNotNull(), 
+                col("context_data.care_provider"))).alias("unique_providers"),
+            sum(when(col("context_data.readmission_risk").cast("double") > 0.5, 1).otherwise(0)).alias("high_risk_patients")  # Healthcare business metrics
         )
         
         # Calculate quality scores
@@ -750,9 +754,11 @@ def context_quality_monitoring():
         .withColumn("quality_check_timestamp", current_timestamp())
         .withColumn("sla_violations",
                    array(
-                       when(col("confidence_score") < **<TODO: confidence_sla>**, lit("low_confidence")).otherwise(lit(None)),
-                       when(col("context_age_hours") > **<TODO: freshness_sla>**, lit("stale_context")).otherwise(lit(None)),
-                       **<TODO: additional_sla_checks>**
+                       when(col("confidence_score") < 0.85, lit("low_confidence")).otherwise(lit(None)),  # Healthcare confidence SLA
+                       when(col("context_age_hours") > 4, lit("stale_context")).otherwise(lit(None)),  # Healthcare freshness SLA (4 hours)
+                       when(col("context_data.care_gap_days").cast("int") > 30, lit("care_gap_violation")).otherwise(lit(None)),
+                       when(col("context_data.medication_adherence").cast("double") < 0.8, lit("medication_adherence_violation")).otherwise(lit(None)),
+                       when(col("relationship_count") == 0 and col("context_type") == "care_coordination", lit("isolated_patient")).otherwise(lit(None))  # Additional healthcare SLA checks
                    ).filter(lambda x: x.isNotNull()))
         .filter(size(col("sla_violations")) > 0)  # Only keep violations for alerting
     )
