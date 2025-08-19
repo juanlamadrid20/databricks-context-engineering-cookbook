@@ -1,6 +1,6 @@
-# Generate PRP (Enhanced)
+# Generate PRP
 
-## Feature specification: $ARGUMENTS
+## Feature file: $ARGUMENTS
 
 Generate a comprehensive, context-rich PRP for Databricks feature implementation that enables one-pass AI execution with iterative self-validation.
 
@@ -54,8 +54,7 @@ Build context package that enables autonomous execution:
 
 ## PRP Generation Framework
 
-### Context-Rich Template Population
-Using `PRPs/templates/prp_base.md`, ensure these sections are comprehensive:
+Using `PRPs/ldp_medallion_hls_base.md`, ensure these sections are comprehensive:
 
 #### All Needed Context Section
 ```yaml
@@ -125,7 +124,7 @@ databricks bundle run -t dev <job-name>
 
 # Level 5: Unity Catalog Governance Validation
 databricks catalogs list
-databricks schemas list --catalog-name <catalog>
+databricks schemas list --catalog-name {catalog}
 databricks tables list --catalog-name {catalog} --schema-name {schema} | grep {feature_tables}
 
 # Level 6: Data Quality and Pipeline Events Monitoring
@@ -210,6 +209,7 @@ Score each dimension 1-10, target 8+ overall for one-pass implementation success
 
 *** ULTRATHINK ABOUT THE DATABRICKS ASSET BUNDLES PRP AND PLAN YOUR DLT APPROACH THEN START WRITING THE PRP ***
 
+## Output
 Save as: `PRPs/{feature-name}.md` with confidence score 8-10/10 for one-pass implementation success.
 
 Remember: The goal is one-pass Databricks implementation success through comprehensive Asset Bundle and Unity Catalog context.
