@@ -63,15 +63,6 @@ Using `PRPs/ldp_medallion_hls_base.md`, ensure these sections are comprehensive:
   why: "Complete Databricks development patterns, Asset Bundle configurations, DLT pipeline examples, and all external documentation references"
   extract: "All sections for comprehensive context - see Consolidated Documentation References section"
 
-# Include codebase file references with extraction rationale
-- file: src/pipelines/bronze/existing_pattern.py
-  why: "Schema enforcement and cloud files pattern to replicate"
-  extract: "Lines 15-45 show critical path handling and DLT decorators"
-
-- file: databricks.yml
-  why: "Asset Bundle variable and target configuration template"
-  extract: "Environment separation pattern and resource dependencies"
-
 # Domain-specific documentation only (example for healthcare)
 - url: https://www.hl7.org/fhir/patient.html
   why: "FHIR Patient resource specifications for {specific_healthcare_feature}"
