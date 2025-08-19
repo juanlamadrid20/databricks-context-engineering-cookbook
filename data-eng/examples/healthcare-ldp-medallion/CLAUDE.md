@@ -8,7 +8,6 @@ This is a Databricks data engineering project template implementing a medallion 
 
 ### AI Documentation Curation
 
-- `PRPs/ai_docs/` contains curated Claude Code documentation for context injection
 - `claude_md_files/` provides framework-specific CLAUDE.md examples
 
 ## Critical Success Patterns
@@ -38,7 +37,7 @@ This is a Databricks data engineering project template implementing a medallion 
 ### When Executing PRPs
 
 1. **Load PRP**: Read and understand all context and requirements
-2. **ULTRATHINK**: Create comprehensive plan, break down into todos, use subagents, batch tool etc check prps/ai_docs/
+2. **ULTRATHINK**: Create comprehensive plan, break down into todos, use subagents, batch tool etc
 3. **Execute**: Implement following the blueprint
 4. **Validate**: Run each validation command, fix failures
 5. **Complete**: Ensure all checklist items done
