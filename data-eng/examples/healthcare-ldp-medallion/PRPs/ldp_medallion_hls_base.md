@@ -24,6 +24,25 @@ Implement a comprehensive healthcare data pipeline using Delta Live Tables with 
 
 ## Context & Requirements
 
+### Documentation & References (list all context needed to implement the feature)
+```yaml
+# MUST READ - Include these in your context window
+
+# Primary Development Reference
+- file: CLAUDE.md
+  why: Complete Databricks development patterns, Asset Bundle configurations, DLT pipeline examples, and all external documentation references
+  extract: "All sections for comprehensive context - see Consolidated Documentation References section for external URLs"
+
+# Domain-Specific Healthcare Documentation  
+- url: https://www.hl7.org/fhir/patient.html
+  why: FHIR Patient resource specifications for healthcare data standards and validation rules
+  
+- url: https://www.hipaajournal.com/hipaa-compliance-checklist/
+  why: HIPAA compliance requirements for patient data handling, encryption, and audit logging
+
+```
+
+
 ### Context Engineering Specifications
 ```yaml
 # Context Definition & Scope
@@ -60,23 +79,6 @@ context_graph_structure:
   - graph_algorithms: care_pathway_analysis, clinical_decision_support # Healthcare-specific algorithms
 ```
 
-### Documentation & References (list all context needed to implement the feature)
-```yaml
-# MUST READ - Include these in your context window
-
-# Primary Development Reference
-- file: CLAUDE.md
-  why: Complete Databricks development patterns, Asset Bundle configurations, DLT pipeline examples, and all external documentation references
-  extract: "All sections for comprehensive context - see Consolidated Documentation References section for external URLs"
-
-# Domain-Specific Healthcare Documentation  
-- url: https://www.hl7.org/fhir/patient.html
-  why: FHIR Patient resource specifications for healthcare data standards and validation rules
-  
-- url: https://www.hipaajournal.com/hipaa-compliance-checklist/
-  why: HIPAA compliance requirements for patient data handling, encryption, and audit logging
-
-```
 
 ### Current Codebase tree (run `tree` in the root of the project) to get an overview of the codebase
 ```bash
@@ -84,12 +86,14 @@ context_graph_structure:
 # Starting with basic project structure:
 dbrx-ctxeng-de/
   - CLAUDE.md
-  - examples/
   - PRPs/
     - prp_base.md
     - templates/
   - README.md
 ```
+
+### Desired Codebase tree with files to be added and responsibility of file
+
 
 ### This is a reference example of codebase tree with files to be added and responsibility of file. 
 ```bash

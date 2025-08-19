@@ -1,8 +1,19 @@
-# Execute PRP
+# Execute BASE PRP
 
 ## PRP file: $ARGUMENTS
 
+## Mission: One-Pass Implementation Success
+
 Execute a Problem Requirements & Proposal (PRP) for Databricks feature implementation with systematic validation and rollback capabilities.
+
+PRPs enable working code on the first attempt through:
+
+- **Context Completeness**: Everything needed, nothing guessed
+- **Progressive Validation**: 4-level gates catch errors early
+- **Pattern Consistency**: Follow existing codebase approaches
+- Read PRPs/README.md to understand PRP concepts
+
+**Your Goal**: Transform the PRP into working code that passes all validation gates.
 
 ## Pre-Execution Validation
 
@@ -16,15 +27,9 @@ Before starting implementation, validate the PRP is ready for execution:
    - Ensure all TODO placeholders are filled with actual values
 
 2. **Environment Readiness**
-   - Verify git working directory is clean for rollback capability
    - Check Databricks CLI authentication: `databricks auth login`
    - Validate Asset Bundle structure: `databricks bundle validate --target dev`
    - Confirm Unity Catalog access: `databricks catalogs list`
-
-3. **Safety Preparations**
-   - Create feature branch: `git checkout -b feature/${ARGUMENTS}`
-   - Backup current bundle configuration: `cp databricks.yml databricks.yml.backup.$(date +%Y%m%d_%H%M%S)`
-   - Set error trap for automatic rollback on failure
 
 ## Systematic Execution Process
 
@@ -143,33 +148,6 @@ databricks pipelines list-pipeline-events --pipeline-id ${PIPELINE_ID} --output 
    - Document validation results and next steps
    - Create PR-ready summary for code review
 
-## Error Handling & Rollback
-
-### Automatic Rollback on Failure
-```bash
-cleanup_on_failure() {
-    echo "=== FAILURE DETECTED - INITIATING ROLLBACK ==="
-    
-    # Restore bundle configuration
-    if [ -f databricks.yml.backup.* ]; then
-        BACKUP_FILE=$(ls -t databricks.yml.backup.* | head -1)
-        cp ${BACKUP_FILE} databricks.yml
-        echo "Restored databricks.yml from ${BACKUP_FILE}"
-    fi
-    
-    # Destroy development deployment
-    databricks bundle destroy --target dev --auto-approve || echo "No dev deployment to clean up"
-    
-    # Return to main branch and cleanup
-    git checkout main || git checkout master
-    git branch -D feature/${ARGUMENTS} 2>/dev/null || echo "Feature branch cleanup skipped"
-    
-    echo "Rollback completed"
-    exit 1
-}
-
-# Set trap for automatic error handling
-trap cleanup_on_failure ERR
 ```
 
 ### Success Completion
@@ -184,7 +162,6 @@ $(date)
 ## Pipeline Details
 - Pipeline ID: ${PIPELINE_ID}
 - Target Environment: dev
-- Git Branch: feature/${ARGUMENTS}
 
 ## Validation Results
 - Configuration: ✓ Passed
