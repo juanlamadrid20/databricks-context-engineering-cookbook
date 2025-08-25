@@ -1,0 +1,40 @@
+resources:
+  pipelines:
+    patient_data_medallion_pipeline:
+      name: "health-insurance-patient-pipeline-${var.environment}"
+      target: "${var.schema}"  # CRITICAL: Only schema when catalog is specified separately
+      catalog: "${var.catalog}"  # CRITICAL: Required for serverless compute
+      serverless: true  # MANDATORY: Must be true - NO cluster configurations allowed
+      
+      root_path: "/Workspace/Users/juan.lamadrid@databricks.com/.bundle/health-insurance-patient-pipeline/dev/files/src/pipelines"
+      libraries:
+        # CRITICAL: Reference individual files, NOT directories
+        # Shared schemas
+        - file:
+            path: ../src/pipelines/shared/healthcare_schemas.py
+        # Bronze layer ingestion
+        - file:
+            path: ../src/pipelines/bronze/bronze_patients.py
+        - file:
+            path: ../src/pipelines/bronze/bronze_claims.py
+        - file:
+            path: ../src/pipelines/bronze/bronze_medical_events.py
+        # Silver layer transformations (implemented)
+        - file:
+            path: ../src/pipelines/silver/silver_patients.py
+            
+      configuration:
+        "CATALOG": "${var.catalog}"
+        "SCHEMA": "${var.schema}"
+        "PIPELINE_ENV": "${var.environment}"
+        "VOLUMES_PATH": "${var.volumes_path}"
+        "MAX_FILES_PER_TRIGGER": "${var.max_files_per_trigger}"
+        # Healthcare compliance configurations (serverless handles compute automatically)
+        "spark.databricks.delta.properties.defaults.changeDataFeed.enabled": "true"
+        # Compliance and governance metadata (stored as configuration parameters)
+        "compliance": "HIPAA"
+        "data_classification": "PHI"
+        "environment": "${var.environment}"
+        
+      # Continuous processing for healthcare workloads  
+      continuous: false

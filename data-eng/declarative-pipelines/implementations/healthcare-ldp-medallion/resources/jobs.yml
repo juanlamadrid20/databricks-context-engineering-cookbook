@@ -1,0 +1,40 @@
+resources:
+  jobs:
+    synthetic_data_generation_job:
+      name: "synthetic-healthcare-data-generation-${var.environment}"
+      # ✅ CORRECT: Use notebook tasks for serverless execution
+      
+      parameters:
+        - name: "catalog"
+          default: "${var.catalog}"
+        - name: "schema" 
+          default: "${var.schema}"
+        - name: "volumes_path"
+          default: "${var.volumes_path}"
+        - name: "patient_count"
+          default: "1000"
+        
+      tasks:
+        - task_key: "generate_synthetic_data"
+          # ✅ CORRECT: No compute_key or cluster references = serverless by default
+          notebook_task:
+            notebook_path: "../src/jobs/data_generation/synthetic_data_notebook.py"
+            base_parameters:
+              catalog: "${var.catalog}"
+              schema: "${var.schema}"
+              volumes_path: "${var.volumes_path}"
+              patient_count: "1000"
+      
+      # Schedule for automated data generation (optional)
+      schedule:
+        quartz_cron_expression: "0 0 6 * * ?"  # Daily at 6 AM
+        timezone_id: "America/Los_Angeles"
+        pause_status: "PAUSED"  # Start paused, enable manually
+        
+      email_notifications:
+        on_failure:
+          - "healthcare-data-engineering@company.com"
+        on_success:
+          - "healthcare-data-engineering@company.com"
+          
+      timeout_seconds: 3600  # 1 hour timeout for synthetic data generation
