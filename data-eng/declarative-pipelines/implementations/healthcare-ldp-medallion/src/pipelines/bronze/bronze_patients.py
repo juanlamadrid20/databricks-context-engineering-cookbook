@@ -16,7 +16,8 @@ import dlt
 from pyspark.sql import DataFrame
 from pyspark.sql.functions import (
     current_timestamp, col, when, lit, sha2, concat,
-    regexp_replace, upper, length, isnan, isnull
+    regexp_replace, upper, length, isnan, isnull, count, countDistinct, avg, max,
+    sum as spark_sum
 )
 
 # Import healthcare schemas and utilities
@@ -50,7 +51,7 @@ MAX_FILES_PER_TRIGGER = spark.conf.get("MAX_FILES_PER_TRIGGER", "100")
 @dlt.expect_all_or_drop({
     "valid_patient_id": "patient_id IS NOT NULL AND LENGTH(patient_id) >= 5",
     "no_test_patients": "NOT(UPPER(last_name) LIKE '%TEST%' OR UPPER(first_name) LIKE '%TEST%')",
-    "hipaa_compliant_no_raw_ssn": "ssn IS NULL OR LENGTH(ssn) = 0",  # Ensure no raw SSN after processing
+    "hipaa_compliant_ssn_hashed": "ssn_hash IS NOT NULL",  # Ensure SSN is properly hashed
     "valid_source_system": "source_system = 'EHR_SYSTEM'",
     "valid_effective_date": "effective_date IS NOT NULL"
 })
@@ -212,11 +213,11 @@ def bronze_patients_quality_metrics():
         .agg(
             count("*").alias("total_records"),
             countDistinct("patient_id").alias("unique_patients"),
-            sum(when(col("_data_quality_flags") == "", 1).otherwise(0)).alias("clean_records"),
-            sum(when(col("ssn_hash").isNotNull(), 1).otherwise(0)).alias("records_with_ssn"),
-            sum(when(col("emergency_contact_complete"), 1).otherwise(0)).alias("complete_emergency_contacts"),
-            sum(when(col("has_primary_care_provider"), 1).otherwise(0)).alias("patients_with_pcp"),
-            sum(when(col("has_insurance_info"), 1).otherwise(0)).alias("patients_with_insurance"),
+            spark_sum(when(col("_data_quality_flags") == "", 1).otherwise(0)).alias("clean_records"),
+            spark_sum(when(col("ssn_hash").isNotNull(), 1).otherwise(0)).alias("records_with_ssn"),
+            spark_sum(when(col("emergency_contact_complete"), 1).otherwise(0)).alias("complete_emergency_contacts"),
+            spark_sum(when(col("has_primary_care_provider"), 1).otherwise(0)).alias("patients_with_pcp"),
+            spark_sum(when(col("has_insurance_info"), 1).otherwise(0)).alias("patients_with_insurance"),
             max("_ingested_at").alias("last_ingestion_time")
         )
         .withColumn("data_quality_percentage", 

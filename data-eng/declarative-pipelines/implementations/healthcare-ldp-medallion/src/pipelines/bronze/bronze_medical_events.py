@@ -15,8 +15,8 @@ import dlt
 from pyspark.sql import DataFrame
 from pyspark.sql.functions import (
     current_timestamp, col, when, lit, length, upper,
-    regexp_replace, concat, count, sum as spark_sum,
-    to_date, datediff, split, regexp_extract
+    regexp_replace, concat, count, countDistinct, avg, max,
+    sum as spark_sum, to_date, datediff, split, regexp_extract
 )
 import re
 

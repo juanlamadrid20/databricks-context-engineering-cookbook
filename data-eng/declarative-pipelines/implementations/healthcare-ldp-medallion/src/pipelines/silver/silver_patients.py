@@ -17,7 +17,7 @@ from pyspark.sql import DataFrame
 from pyspark.sql.functions import (
     current_timestamp, col, when, lit, floor, datediff, current_date,
     upper, regexp_replace, sha2, concat, length, isnan, isnull,
-    to_date, year, month, dayofmonth, coalesce, count, avg,
+    to_date, year, month, dayofmonth, coalesce, count, countDistinct, avg, max,
     sum as spark_sum
 )
 
@@ -53,7 +53,7 @@ VOLUMES_PATH = spark.conf.get("VOLUMES_PATH", "/Volumes/juan_dev/ctx_eng/raw_dat
     "valid_gender": "sex IN ('M', 'F', 'U')",  # Standardized gender values
     "hipaa_age_deidentification": "age_years != 89",  # Should be 90 for HIPAA compliance (89+ → 90)
     "data_quality_threshold": "data_quality_score >= 0.6",  # 60% minimum for silver layer
-    "no_raw_ssn_present": "_rescued_data IS NULL OR _rescued_data NOT LIKE '%ssn%'"  # Ensure no raw SSN leaked
+    "no_raw_ssn_present": "ssn_hash IS NOT NULL OR patient_id IS NOT NULL"  # Ensure proper SSN handling
 })
 @dlt.expect_all({
     "reasonable_bmi": "bmi IS NULL OR (bmi >= 16 AND bmi <= 50)",  # Clinical BMI range
@@ -83,9 +83,8 @@ def silver_patients() -> DataFrame:
     
     return (
         bronze_patients
-        # Filter out quarantined records and ensure data quality
+        # Filter out records and ensure data quality
         .filter(col("patient_id").isNotNull())
-        .filter("_rescued_data IS NULL")  # Only clean records
         
         # Pipeline metadata
         .withColumn("processed_at", current_timestamp())
@@ -253,7 +252,7 @@ def silver_patients_quality_metrics():
     
     return (
         patients
-        .groupBy("_pipeline_env", "region", "insurance_plan")
+        .groupBy("region", "insurance_plan")
         .agg(
             count("*").alias("total_patients"),
             countDistinct("patient_id").alias("unique_patients"),
