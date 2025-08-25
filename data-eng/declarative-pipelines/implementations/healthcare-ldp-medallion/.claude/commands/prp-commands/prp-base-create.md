@@ -2,6 +2,73 @@
 
 ## Feature file: $ARGUMENTS
 
+**🚨 MANDATORY: Feature specification is required for PRP generation**
+
+### Feature Specification Format:
+```bash
+/prp-commands:prp-base-create <FEATURE_NAME> <DATA_SOURCES> <BUSINESS_REQUIREMENTS>
+```
+
+### Smart Default Behavior (Recommended):
+When you run `/prp-commands:prp-base-create` without arguments:
+
+**Default Feature**: `patient_data_medallion_pipeline` (complete healthcare LDP)
+**Default Scope**: Full medallion architecture with all 3 business entities
+**Default Sources**: EHR_SYSTEM, ADT_SYSTEM, LAB_SYSTEM
+**Default Requirements**: HIPAA compliance, 99.5% data quality, identity resolution
+
+**To Use Defaults**:
+```bash
+/prp-commands:prp-base-create --use-defaults
+```
+
+**To Override Defaults**:
+```bash
+/prp-commands:prp-base-create --feature="bronze_patient_ingestion" --sources="EHR_SYSTEM" --scope="ingestion_only"
+```
+
+### Examples:
+```bash
+# Build complete patient data pipeline (default)
+/prp-commands:prp-base-create
+
+# Build specific component
+/prp-commands:prp-base-create "bronze_patient_ingestion" "EHR_SYSTEM" "Real-time patient data ingestion with schema evolution"
+
+# Build identity resolution layer
+/prp-commands:prp-base-create "patient_identity_resolution" "EHR_SYSTEM,ADT_SYSTEM,LAB_SYSTEM" "Multi-source patient matching with clinical validation"
+
+# Build with custom requirements
+/prp-commands:prp-base-create "patient_data_medallion_pipeline" "EHR_SYSTEM,ADT_SYSTEM,LAB_SYSTEM" "HIPAA compliance, 99.5% data quality, identity resolution, real-time monitoring"
+```
+
+### Automatic Feature Detection:
+If no feature is specified, the system will automatically:
+
+1. **Analyze the LDP base file** to identify the core feature:
+   - **Primary Feature**: `patient_data_medallion_pipeline`
+   - **Data Sources**: `EHR_SYSTEM`, `ADT_SYSTEM`, `LAB_SYSTEM`
+   - **Business Entities**: `Patients`, `Claims`, `Medical_Events`
+   - **Architecture**: `Bronze → Silver → Gold medallion with identity resolution`
+   - **Compliance**: `HIPAA`, `HL7 FHIR`, `Data Quality 99.5%+`
+
+2. **Generate PRP for the complete pipeline** using the base file specifications
+
+3. **Proceed with implementation** without requiring additional clarification
+
+### What Happens Without Feature Specification:
+- ❌ System asks for clarification (current behavior)
+- ❌ No specific implementation can be generated
+- ❌ PRP remains generic and non-actionable
+
+### What Happens With Smart Defaults:
+- ✅ System automatically detects intended feature from LDP base file
+- ✅ Generates comprehensive PRP for complete healthcare LDP pipeline
+- ✅ Enables one-pass AI implementation with 8+/10 quality score
+- ✅ No manual clarification required
+
+---
+
 Generate a comprehensive, context-rich PRP for Databricks feature implementation that enables one-pass AI execution with iterative self-validation.
 
 ## Research & Context Gathering
@@ -23,7 +90,7 @@ grep -r "dlt.read\|dlt.read_stream" --include="*.py" . | head -5
 # Unity Catalog Usage Patterns
 grep -r "dlt.table" --include="*.py" . | head -5
 grep -r "@dlt.expect" --include="*.py" . | head -5
-grep -r "CATALOG.*SCHEMA" --include="*.py" . | head -5
+grep -r "CATALOG.*SCHEMA" --include="*.yml" . | head -5
 
 # Data Quality and Governance Patterns
 grep -r "table_properties" --include="*.py" . | head -5
@@ -204,3 +271,32 @@ Score each dimension 1-10, target 8+ overall for one-pass implementation success
 Save as: `PRPs/{feature-name}.md` with confidence score 8-10/10 for one-pass implementation success.
 
 Remember: The goal is one-pass Databricks implementation success through comprehensive Asset Bundle and Unity Catalog context.
+
+## Smart Default Feature Detection
+
+### Automatic Feature Analysis:
+When no specific feature is provided, the system will automatically analyze `PRPs/ldp_medallion_hls_base.md` and generate a PRP for:
+
+**Feature Name**: `patient_data_medallion_pipeline`
+**Scope**: Complete healthcare LDP medallion architecture
+**Components**: 
+- Bronze layer (3 tables: patients, claims, medical_events)
+- Silver layer (3 tables: cleaned and validated)
+- Gold layer (3 tables: dimensional model)
+- Identity resolution layer (multi-source enrichment)
+- Synthetic data generation job
+- Asset Bundle configuration
+- HIPAA compliance and governance
+
+**Data Sources**: EHR_SYSTEM, ADT_SYSTEM, LAB_SYSTEM
+**Business Requirements**: HIPAA compliance, 99.5% data quality, real-time monitoring, identity resolution
+
+### No Manual Input Required:
+The system will automatically:
+1. ✅ Detect the intended feature from the LDP base file
+2. ✅ Generate comprehensive PRP for the complete pipeline
+3. ✅ Include all necessary context and implementation details
+4. ✅ Enable one-pass AI implementation with 8+/10 quality score
+5. ✅ Eliminate the need for manual clarification or feature specification
+
+**Result**: Fully actionable PRP that can be executed immediately without additional user input.

@@ -1,10 +1,10 @@
 # Healthcare LDP Medallion Architecture PRP
 
 ## Purpose
-Implement a comprehensive healthcare data pipeline using Delta Live Tables with identity resolution and medallion architecture for health insurance patient data.
+Implement a comprehensive healthcare data ingestion pipeline using Lakeflow Decalarative Pipelines with identity resolution and medallion architecture for health insurance patient data.
 
 ## Goal
-**Build a mature health insurance patient data medallion pipeline using Delta Live Tables that implements comprehensive data quality controls, governance, and observability for patient demographics, claims, and medical events processing.**
+**Build a mature health insurance patient data medallion pipeline using Lakeflow Decalarative Pipelines that implements comprehensive data quality controls, governance, and observability for patient demographics, claims, and medical events processing.**
 
 ## Why
 - **Business value**: Establish a production-ready data platform for health insurance analytics with proper governance
