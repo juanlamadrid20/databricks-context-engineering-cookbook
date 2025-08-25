@@ -2,14 +2,7 @@
 This project focuses on **Context Engineering** methods to build solutions on Databricks.  
 It provides practical examples and solution patterns demonstrating how context engineering methods can be applied using the Databricks platform.
 
-### What’s Included
-- **Lakeflow Declarative Pipelines**: Examples showing how to build robust, declarative data pipelines for ingestion, transformation, and delivery.
-- **Machine Learning Solutions**: Demonstrations of ML workflows built on the Databricks Lakehouse, from feature engineering to model deployment.
-- **Lakehouse Apps**: Patterns and implementations for building custom applications natively within the Databricks environment.
-
 These examples are designed to accelerate development, promote best practices, and showcase how context engineering concepts can be operationalized at scale with Databricks.
-
-
 
 # About Context Engineering
 

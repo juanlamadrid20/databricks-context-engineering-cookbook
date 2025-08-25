@@ -1,0 +1,27 @@
+{
+  "mcpServers": {
+    "fetch": {
+      "command": "uvx",
+      "args": ["mcp-server-fetch"]
+    },
+    "Context7": {
+      "command": "npx",
+      "args": ["-y", "@upstash/context7-mcp"]
+    },
+    "databricks-sdk-py": {
+      "command": "npx",
+      "args": ["mcp-remote", "https://gitmcp.io/databricks/databricks-sdk-py"]
+    },
+    "databricks-ctx-eng": {
+      "command": "npx",
+      "args": [
+        "mcp-remote",
+        "https://gitmcp.io/juanlamadrid20/databricks-context-engineering-cookbook"
+      ]
+    },
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "~/dev"]
+    }
+  }
+}

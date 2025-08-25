@@ -1,0 +1,46 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cat:*)",
+      "Bash(cd:*)",
+      "Bash(chmod:*)",
+      "Bash(echo:*)",
+      "Bash(find:*)",
+      "Bash(git add:*)",
+      "Bash(git checkout:*)",
+      "Bash(git commit:*)",
+      "Bash(git diff:*)",
+      "Bash(grep:*)",
+      "Bash(head:*)",
+      "Bash(jq:*)",
+      "Bash(ls:*)",
+      "Bash(mkdir:*)",
+      "Bash(mv:*)",
+      "Bash(pwd:*)",
+      "Bash(pytest:*)",
+      "Bash(python -m pytest:*)",
+      "Bash(python3 -m pytest:*)",
+      "Bash(python:*)",
+      "Bash(rg:*)",
+      "Bash(ruff check:*)",
+      "Bash(ruff:*)",
+      "Bash(source:*)",
+      "Bash(tail:*)",
+      "Bash(touch:*)",
+      "Bash(tree:*)",
+      "Bash(wc:*)",
+      "Edit(src/**)",
+      "NotebookEdit",
+      "NotebookRead",
+      "Read(src/**)",
+      "Read(~/.config/zsh/.zshrc)"
+    ],
+    "deny": ["Bash(rm:*)", "Bash(curl:*)", "Bash(git push:*)", "Read(eda/**)"]
+  },
+  "enableAllProjectMcpServers": true,
+  "statusLine": {
+    "type": "command",
+    "command": "input=$(cat); model=$(echo \"$input\" | jq -r '.model.display_name'); dir=$(echo \"$input\" | jq -r '.workspace.current_dir'); style=$(echo \"$input\" | jq -r '.output_style.name'); branch=$(cd \"$dir\" 2>/dev/null && git rev-parse --abbrev-ref HEAD 2>/dev/null || echo \"\"); if [ -n \"$branch\" ]; then printf \"%s │ %s │ %s │ %s\" \"$model\" \"$(basename \"$dir\")\" \"$branch\" \"$style\"; else printf \"%s │ %s │ %s\" \"$model\" \"$(basename \"$dir\")\" \"$style\"; fi"
+  },
+  "outputStyle": "Explanatory"
+}
