@@ -1,0 +1,48 @@
+bundle:
+  name: health-insurance-patient-pipeline
+
+variables:
+  catalog:
+    description: "Unity Catalog name"
+    default: "juan_dev"
+  schema:
+    description: "Schema name within catalog"
+    default: "ctx_eng"
+  environment:
+    description: "Environment identifier (dev/prod)"
+  volumes_path:
+    description: "Path to Databricks Volumes for CSV ingestion"
+  max_files_per_trigger:
+    description: "Auto Loader performance tuning"
+    default: 100
+
+include:
+  - resources/*.yml
+
+targets:
+  dev:
+    mode: development
+    variables:
+      catalog: "juan_dev"
+      schema: "ctx_eng"
+      environment: "dev"
+      volumes_path: "/Volumes/juan_dev/ctx_eng/raw_data"
+      max_files_per_trigger: 50
+      
+  staging:
+    mode: development
+    variables:
+      catalog: "juan_staging"
+      schema: "ctx_eng"
+      environment: "staging"
+      volumes_path: "/Volumes/juan_staging/ctx_eng/raw_data"
+      max_files_per_trigger: 100
+      
+  prod:
+    mode: production
+    variables:
+      catalog: "juan_prod"
+      schema: "ctx_eng"
+      environment: "prod"
+      volumes_path: "/Volumes/juan_prod/ctx_eng/raw_data"
+      max_files_per_trigger: 200
