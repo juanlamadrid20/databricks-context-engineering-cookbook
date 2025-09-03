@@ -2,7 +2,7 @@
 This project focuses on **Context Engineering** methods to build solutions on Databricks.  
 It provides practical examples and solution patterns demonstrating how context engineering methods can be applied using the Databricks platform.
 
-At the end of this doc is a quick start sectino on how to get started.
+**At the end of this doc is a quick start section on how to get started.**
 
 These examples are designed to accelerate development, promote best practices, and showcase how context engineering concepts can be operationalized at scale with Databricks.
 
@@ -49,15 +49,18 @@ This structure allows developers to:
 ```
 databricks-context-engineering-cookbook/
 ├── data-eng/                                               <technical domain>
-│   └── declarative-pipelines/                              <a pattern for this technical domain >
+│   └── declarative-pipelines/                              <a technical domain pattern>
 │       ├── foundations/                                    <foundational PRP files for this domain(data-eng) and pattern (LDP)>
-│       │   └── README.foundations.md
+│       │   ├── CLAUDE.md                                   <Claude AI guidelines and context for this pattern>
+│       │   ├── .claude/                                    <Claude AI slash commands used in claude code>
+│       │   └── PRPs/                                       <Product Requirement Prompt templates>
+│       │       └── ldp_medallion_base.md                   <base PRP template for this pattern>
 │       └── implementations/                                <1 to many example implementations for this domain and pattern>
 │           └── healthcare-ldp-medallion/                   <specific implementation of a fictitious HLS use case>
 │               ├── README.md
-│               ├── CLAUDE.md
+│               ├── CLAUDE.md                               <Claude AI guidelines for this specific implementation>
 │               ├── databricks.yml
-│               ├── PRPs/
+│               ├── PRPs/                                   <Product Requirement Prompts for this implementation>
 │               │   ├── ldp_medallion_hls_base.md
 │               │   └── patient_data_medallion_pipeline.md
 │               ├── resources/
@@ -95,6 +98,9 @@ databricks-context-engineering-cookbook/
 - **Technical Domains** (e.g., `data-eng/`): High-level solution areas
 - **Patterns** (e.g., `declarative-pipelines/`): Specific solution approaches within each domain
 - **Foundations**: Reusable PRP templates and building blocks
+  - **CLAUDE.md**: Claude AI guidelines and context for the pattern
+  - **.claude/**: Claude AI configuration and context files
+  - **PRPs/**: Product Requirement Prompt templates
 - **Implementations**: Complete working examples with full code and documentation
 - **Future Expansion**: Placeholder structure for additional domains and patterns
 
