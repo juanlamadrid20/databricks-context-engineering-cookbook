@@ -1,6 +1,8 @@
-# About This Repository
+# About
 This project focuses on **Context Engineering** methods to build solutions on Databricks.  
 It provides practical examples and solution patterns demonstrating how context engineering methods can be applied using the Databricks platform.
+
+At the end of this doc is a quick start sectino on how to get started.
 
 These examples are designed to accelerate development, promote best practices, and showcase how context engineering concepts can be operationalized at scale with Databricks.
 
@@ -20,7 +22,7 @@ This repository is organized into a hierarchical structure that reflects the dif
 ### Technical Domains
 The repository is organized around main technical domains such as:
 - **data-eng** - Data engineering solutions and patterns
-- **databricks apps** - Databricks Application development patterns
+- **data-apps** - Databricks Application development patterns (TBD)
 - And other domain-specific areas
 
 ### Pattern Organization
@@ -95,3 +97,51 @@ databricks-context-engineering-cookbook/
 - **Foundations**: Reusable PRP templates and building blocks
 - **Implementations**: Complete working examples with full code and documentation
 - **Future Expansion**: Placeholder structure for additional domains and patterns
+
+
+# Quick Start
+
+## Getting Started
+
+1. **Clone this repository**
+   ```bash
+   git clone <repository-url>
+   cd databricks-context-engineering-cookbook
+   ```
+
+2. **Choose your technical domain**
+   - Currently available: **data-eng** (Data engineering solutions and patterns)
+   - Navigate to your domain of interest: `cd data-eng/`
+
+3. **Select your pattern**
+   - Currently available: **declarative-pipelines** (Declarative pipeline patterns)
+   - Navigate to the pattern: `cd declarative-pipelines/`
+
+4. **Use the foundations PRP scaffolding**
+   - Start with the foundational templates in the `foundations/` folder
+   - These contain reusable PRP (Product Requirement Prompt) templates with directions and TODOs to fill out for your specific use case
+
+5. **Customize for your use case**
+   - Edit `CLAUDE.md` with your specific guidelines and requirements
+   - Modify the base PRP file (e.g., `ldp_medallion_base.md`) to add your specific use case requirements
+   - Reference the `implementations/` section for complete working examples
+
+6. **Generate and execute your PRP**
+   - Use the slash commands to generate your PRP:
+     ```
+     /prp-base-create ldp_medallion_base.md
+     ```
+   - Execute your PRP to generate code:
+     ```
+     /prp-base-execute PRPs/your-feature.md
+     ```
+
+## Example Workflow
+
+1. Clone the repository
+2. Navigate to `data-eng/declarative-pipelines/foundations/`
+3. Review the base PRP template (`ldp_medallion_base.md`)
+4. Create your own implementation folder
+5. Copy and customize `CLAUDE.md` and the base PRP for your specific requirements
+6. Use slash commands to generate and execute your PRP
+7. Reference `implementations/healthcare-ldp-medallion/` for a complete working example
